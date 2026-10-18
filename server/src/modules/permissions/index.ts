@@ -5,7 +5,7 @@ import { asyncHandler, ok, parse, clientIp } from '../../lib/http';
 import { recordAudit } from '../../lib/audit';
 import { PERMISSIONS, isPermission } from '../../lib/permissions';
 import { AppError } from '../../middleware/errorHandler';
-import { requirePermission } from '../../middleware/authMiddleware';
+import { requirePermission, hasPermission } from '../../middleware/authMiddleware';
 import { ScopedRequest } from '../../middleware/workspaceContext';
 
 /**
@@ -22,9 +22,11 @@ const permissionList = z
   .refine((list) => list.every(isPermission), { message: 'Unknown permission key' })
   .transform((list) => [...new Set(list)]);
 
+// Reading roles is needed to invite or re-role members, so user:manage may read them too (read only).
 permissionsRouter.get(
   '/',
-  requirePermission('role:manage'),
+  (req, res, next) =>
+    hasPermission(req as ScopedRequest, 'user:manage') ? next() : requirePermission('role:manage')(req as ScopedRequest, res, next),
   asyncHandler<ScopedRequest>(async (req, res) => {
     const roles = await prisma.role.findMany({
       where: { workspaceId: req.ctx.workspaceId },

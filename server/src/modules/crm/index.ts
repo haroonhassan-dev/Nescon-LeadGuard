@@ -69,9 +69,72 @@ crmRouter.get(
     };
     const [total, items] = await Promise.all([
       prisma.contact.count({ where }),
-      prisma.contact.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (q.page - 1) * q.limit, take: q.limit }),
+      prisma.contact.findMany({ where, include: { company: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' }, skip: (q.page - 1) * q.limit, take: q.limit }),
     ]);
     ok(req, res, { items, pagination: paginate(q.page, q.limit, total) });
+  })
+);
+
+const contactCreate = z
+  .object({
+    firstName: z.string().trim().min(1).max(80),
+    lastName: z.string().trim().max(80).default(''),
+    email: z.string().trim().toLowerCase().email().optional(),
+    phone: z.string().trim().regex(/^\+?[0-9 ()-]{6,20}$/, 'Phone number looks invalid').optional(),
+    companyId: z.string().uuid().optional(),
+    tags: tagList.default([]),
+  })
+  .refine((v) => v.email || v.phone, { message: 'Email or phone is required', path: ['email'] });
+
+crmRouter.post(
+  '/contacts',
+  requirePermission('contact:create'),
+  asyncHandler<ScopedRequest>(async (req, res) => {
+    const input = parse(contactCreate, req.body);
+    const ws = req.ctx.workspaceId;
+    if (input.companyId && !(await prisma.company.findFirst({ where: { id: input.companyId, workspaceId: ws } }))) {
+      throw new AppError('Company not found', 400, 'VALIDATION_FAILED');
+    }
+    const contact = await prisma.$transaction(async (tx) => {
+      const created = await tx.contact.create({ data: { ...input, workspaceId: ws } });
+      await recordAudit(tx, { workspaceId: ws, actor: actorOf(req), action: 'CONTACT_CREATED', entityType: 'Contact', entityId: created.id, after: input, ipAddress: clientIp(req), requestId: req.id });
+      return created;
+    });
+    ok(req, res, contact, 201);
+  })
+);
+
+crmRouter.get(
+  '/companies',
+  requirePermission('company:read'),
+  asyncHandler<ScopedRequest>(async (req, res) => {
+    const items = await prisma.company.findMany({
+      where: { workspaceId: req.ctx.workspaceId },
+      include: { _count: { select: { contacts: true, opportunities: true } } },
+      orderBy: { name: 'asc' },
+    });
+    ok(req, res, { items });
+  })
+);
+
+const companyCreate = z.object({
+  name: z.string().trim().min(2).max(120),
+  domain: z.string().trim().max(120).optional(),
+  phone: z.string().trim().max(30).optional(),
+});
+
+crmRouter.post(
+  '/companies',
+  requirePermission('company:create'),
+  asyncHandler<ScopedRequest>(async (req, res) => {
+    const input = parse(companyCreate, req.body);
+    const ws = req.ctx.workspaceId;
+    const company = await prisma.$transaction(async (tx) => {
+      const created = await tx.company.create({ data: { ...input, workspaceId: ws } });
+      await recordAudit(tx, { workspaceId: ws, actor: actorOf(req), action: 'COMPANY_CREATED', entityType: 'Company', entityId: created.id, after: input, ipAddress: clientIp(req), requestId: req.id });
+      return created;
+    });
+    ok(req, res, company, 201);
   })
 );
 
