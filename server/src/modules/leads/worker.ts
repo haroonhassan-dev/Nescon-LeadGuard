@@ -89,6 +89,9 @@ const APP_BASE_URL = process.env.APP_BASE_URL || process.env.CORS_ORIGIN || 'htt
 
 /** Delivers outbox alerts with bounded, backed-off retries (I4.4). */
 async function processNotifications(): Promise<void> {
+  // A process that cannot send (no provider registered) leaves the outbox alone, so another
+  // server process that can send still picks the alert up. It stays PENDING and visible.
+  if (!getNotificationSender()) return;
   const due = await prisma.notification.findMany({
     where: { status: 'PENDING', nextAttemptAt: { lte: new Date() } },
     orderBy: { nextAttemptAt: 'asc' },

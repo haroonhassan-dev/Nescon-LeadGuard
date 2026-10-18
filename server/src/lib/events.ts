@@ -13,12 +13,15 @@ export type RealtimeEventType =
   | 'lead.unassigned'
   | 'lead.activity'
   | 'availability.changed'
-  | 'message.received';
+  | 'message.received'
+  | 'payment.updated';
 
 export interface RealtimeEvent {
   type: RealtimeEventType;
   workspaceId: string;
   leadId?: string;
+  opportunityId?: string;
+  paymentId?: string;
   userId?: string | null;
   previousUserId?: string | null;
   at: string;
