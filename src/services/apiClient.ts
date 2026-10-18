@@ -16,24 +16,92 @@ export class ApiClientError extends Error {
   }
 }
 
+// Token & Workspace state management in localStorage
+const TOKEN_KEY = 'nescon_leadguard_auth_token';
+const WORKSPACE_KEY = 'nescon_leadguard_active_ws';
+
+let inMemoryToken: string | null = null;
+let inMemoryWorkspaceId: string | null = null;
+
+try {
+  inMemoryToken = localStorage.getItem(TOKEN_KEY);
+  inMemoryWorkspaceId = localStorage.getItem(WORKSPACE_KEY);
+} catch {
+  // SSR or restricted storage fallback
+}
+
+export function setAuthToken(token: string | null): void {
+  inMemoryToken = token;
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function getAuthToken(): string | null {
+  return inMemoryToken;
+}
+
+export function setActiveWorkspaceId(workspaceId: string | null): void {
+  inMemoryWorkspaceId = workspaceId;
+  try {
+    if (workspaceId) {
+      localStorage.setItem(WORKSPACE_KEY, workspaceId);
+    } else {
+      localStorage.removeItem(WORKSPACE_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function getActiveWorkspaceId(): string | null {
+  return inMemoryWorkspaceId;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {},
-  workspaceId?: string
+  explicitWorkspaceId?: string
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+
   const headers = new Headers(options.headers || {});
-  headers.set('Content-Type', 'application/json');
-  
-  if (workspaceId) {
-    headers.set('X-Workspace-Id', workspaceId);
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  // Inject Bearer token if present
+  const token = inMemoryToken;
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Inject Workspace context header if present
+  const wsId = explicitWorkspaceId || inMemoryWorkspaceId;
+  if (wsId && !headers.has('X-Workspace-Id')) {
+    headers.set('X-Workspace-Id', wsId);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Network failure';
+    throw new ApiClientError(
+      `Cannot connect to backend service (${msg})`,
+      'NETWORK_UNAVAILABLE',
+      0
+    );
+  }
 
   const data = await response.json().catch(() => null);
 
@@ -41,7 +109,7 @@ export async function apiFetch<T>(
     const errorBody = data as ApiErrorResponse | null;
     throw new ApiClientError(
       errorBody?.error?.message || `Request failed with status ${response.status}`,
-      errorBody?.error?.code || 'NETWORK_ERROR',
+      errorBody?.error?.code || (response.status === 501 ? 'NOT_IMPLEMENTED' : 'REQUEST_FAILED'),
       response.status,
       errorBody?.error?.details
     );
