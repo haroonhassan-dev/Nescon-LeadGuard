@@ -46,10 +46,16 @@ async function findVisibleLead(req: ScopedRequest, id: string) {
 leadsRouter.get(
   '/settings',
   asyncHandler<ScopedRequest>(async (req, res) => {
-    const settings = await getSettings(prisma, req.ctx.workspaceId);
+    const [settings, workspace] = await Promise.all([
+      getSettings(prisma, req.ctx.workspaceId),
+      prisma.workspace.findUniqueOrThrow({ where: { id: req.ctx.workspaceId }, select: { publicFormKey: true, name: true } }),
+    ]);
     ok(req, res, {
       ...settings,
       acknowledgedLeadPolicyDescription: ACKNOWLEDGED_LEAD_POLICIES[settings.acknowledgedLeadPolicy],
+      // The public web form's key is meant to be shared (it only allows submitting a lead).
+      publicFormKey: workspace.publicFormKey,
+      workspaceName: workspace.name,
     });
   })
 );
