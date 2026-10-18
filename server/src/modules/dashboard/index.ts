@@ -87,6 +87,16 @@ dashboardRouter.get(
           ORDER BY s.position`
       : null;
 
+    const weekAhead = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    const upcomingAppointments = await prisma.appointment.count({
+      where: {
+        workspaceId,
+        status: { not: 'CANCELLED' },
+        startTime: { gte: now, lt: weekAhead },
+        ...(company ? {} : { assignedUserId: userId }),
+      },
+    });
+
     ok(req, res, {
       scope: company ? 'company' : 'personal',
       generatedAt: now.toISOString(),
@@ -122,9 +132,8 @@ dashboardRouter.get(
             }))
           : null,
       },
+      upcomingAppointmentsNext7Days: upcomingAppointments,
       monthStartsAt: monthStart.toISOString(),
-      // Not built yet (needs the calendar integration). Reported as missing, never as zero.
-      notYetAvailable: ['upcomingAppointments'],
       drillDown: {
         newLeadsToday: `/api/leads?createdFrom=${dayStart.toISOString()}`,
         awaitingAcknowledgement: '/api/leads?status=ASSIGNED',
