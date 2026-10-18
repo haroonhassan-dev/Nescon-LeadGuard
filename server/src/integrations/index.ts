@@ -12,6 +12,7 @@ import { twilioRouter } from './twilio';
 import { stripeRouter } from './stripe';
 import { googleCalendarRouter } from './google-calendar';
 import { telegramRouter } from './telegram';
+import { vonageRouter } from './vonage';
 
 export * from './types';
 export * from './webhookVerifier';
@@ -24,6 +25,7 @@ export function registerIntegrationRoutes(app: { use: (path: string, router: Rou
   integrationRouter.use('/stripe', stripeRouter);
   integrationRouter.use('/google-calendar', googleCalendarRouter);
   integrationRouter.use('/telegram', telegramRouter);
+  integrationRouter.use('/vonage', vonageRouter);
 
   // Mount on master API path
   app.use('/api/integrations', integrationRouter);
