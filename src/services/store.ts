@@ -1,19 +1,3 @@
-import {
-  INITIAL_WORKSPACE,
-  INITIAL_ROLES,
-  INITIAL_USERS,
-  INITIAL_AVAILABILITIES,
-  INITIAL_COMPANIES,
-  INITIAL_CONTACTS,
-  INITIAL_PIPELINES,
-  INITIAL_CUSTOM_FIELDS,
-  INITIAL_OPPORTUNITIES,
-  INITIAL_LEADS,
-  INITIAL_PAYMENTS,
-  INITIAL_MESSAGES,
-  INITIAL_APPOINTMENTS,
-  INITIAL_AUDIT_EVENTS,
-} from '../mock/seedData';
 import { Workspace } from '@shared/workspace';
 import { User } from '@shared/user';
 import { Role } from '@shared/roles';
@@ -29,7 +13,26 @@ import { Appointment } from '@shared/appointment';
 import { AuditEvent, AuditAction } from '@shared/audit';
 import { CustomFieldDefinition, BackendLead, BackendTeamMember } from '../types';
 
-const STORAGE_KEY = 'nescon_leadguard_app_state_v1';
+// v2: no mock seed. Everything shown comes from the backend after login.
+const STORAGE_KEY = 'nescon_leadguard_app_state_v2';
+
+const PLACEHOLDER_WORKSPACE: Workspace = {
+  id: 'pending',
+  name: 'Workspace',
+  slug: 'pending',
+  settings: {
+    defaultTimezone: 'UTC',
+    defaultCurrency: 'USD',
+    defaultAcknowledgementTimeoutMinutes: 1,
+    maxEscalationLevels: 3,
+    autoAssignmentEnabled: true,
+    webhookRetryLimit: 3,
+    businessHours: [],
+  },
+  isActive: true,
+  createdAt: new Date(0).toISOString(),
+  updatedAt: new Date(0).toISOString(),
+};
 
 interface AppState {
   workspaces: Workspace[];
@@ -60,21 +63,21 @@ function loadInitialState(): AppState {
   }
 
   return {
-    workspaces: [INITIAL_WORKSPACE],
-    activeWorkspaceId: INITIAL_WORKSPACE.id,
-    roles: INITIAL_ROLES,
-    users: INITIAL_USERS,
-    availabilities: INITIAL_AVAILABILITIES,
-    companies: INITIAL_COMPANIES,
-    contacts: INITIAL_CONTACTS,
-    pipelines: INITIAL_PIPELINES,
-    customFields: INITIAL_CUSTOM_FIELDS,
-    opportunities: INITIAL_OPPORTUNITIES,
-    leads: INITIAL_LEADS,
-    payments: INITIAL_PAYMENTS,
-    messages: INITIAL_MESSAGES,
-    appointments: INITIAL_APPOINTMENTS,
-    auditEvents: INITIAL_AUDIT_EVENTS,
+    workspaces: [PLACEHOLDER_WORKSPACE],
+    activeWorkspaceId: PLACEHOLDER_WORKSPACE.id,
+    roles: [],
+    users: [],
+    availabilities: [],
+    companies: [],
+    contacts: [],
+    pipelines: [],
+    customFields: [],
+    opportunities: [],
+    leads: [],
+    payments: [],
+    messages: [],
+    appointments: [],
+    auditEvents: [],
   };
 }
 
@@ -118,6 +121,20 @@ class AppStore {
     return ws || this.state.workspaces[0];
   }
 
+  /** Called after login: the active workspace is the one the server says the user belongs to. */
+  public setWorkspaceFromMembership(m: { workspaceId: string; workspaceName: string; workspaceSlug?: string }): void {
+    const ws: Workspace = { ...PLACEHOLDER_WORKSPACE, id: m.workspaceId, name: m.workspaceName, slug: m.workspaceSlug || m.workspaceId };
+    this.state.workspaces = [ws];
+    this.state.activeWorkspaceId = ws.id;
+    this.save();
+  }
+
+  public clearAll(): void {
+    localStorage.removeItem(STORAGE_KEY);
+    this.state = loadInitialState();
+    this.notify();
+  }
+
   public setActiveWorkspaceId(id: string): void {
     this.state.activeWorkspaceId = id;
     this.save();
@@ -135,7 +152,7 @@ class AppStore {
         maxEscalationLevels: 3,
         autoAssignmentEnabled: true,
         webhookRetryLimit: 5,
-        businessHours: INITIAL_WORKSPACE.settings.businessHours,
+        businessHours: [],
       },
       isActive: true,
       createdAt: new Date().toISOString(),
@@ -570,43 +587,45 @@ class AppStore {
   }
 
   public mergeBackendLeads(backendLeads: BackendLead[]): void {
-    if (!backendLeads || backendLeads.length === 0) return;
     const activeWsId = this.state.activeWorkspaceId;
-    const mappedLeads: Lead[] = backendLeads.map((bl) => ({
-      id: bl.id,
-      workspaceId: bl.workspaceId || activeWsId,
-      title: bl.title || 'Untitled Lead',
-      contactName: bl.contactName || 'Anonymous',
-      contactEmail: bl.contactEmail || '',
-      contactPhone: bl.contactPhone,
-      source: (bl.source as Lead['source']) || 'WEBSITE_FORM',
-      priority: 'HIGH',
-      status: (bl.status as Lead['status']) || 'UNASSIGNED',
-      currentOwnerId: bl.currentOwnerId || (bl.currentOwner ? bl.currentOwner.id : undefined),
-      assignedAt: bl.assignedAt,
-      acknowledgementDeadline: bl.acknowledgementDeadline,
-      acknowledgedAt: bl.acknowledgedAt,
-      escalationLevel: bl.reasons && bl.reasons.length > 0 ? 1 : 0,
-      score: 85,
-      estimatedValue: 20000,
-      currency: 'USD',
-      notes: bl.closeOutcome || '',
-      tags: bl.reasons || [],
-      createdAt: bl.createdAt,
-      updatedAt: bl.updatedAt,
-    }));
-
+    const mappedLeads: Lead[] = (backendLeads || []).map((bl) => {
+      const escalations = bl.escalationCount ?? 0;
+      // Display status: an assigned lead that has escalated is shown as ESCALATED.
+      const status = bl.status === 'ASSIGNED' && escalations > 0 ? 'ESCALATED' : bl.status;
+      return {
+        id: bl.id,
+        workspaceId: activeWsId,
+        title: bl.title || 'Untitled Lead',
+        contactName: bl.contactName || 'Anonymous',
+        contactEmail: bl.contactEmail || '',
+        contactPhone: bl.contactPhone ?? undefined,
+        source: bl.source as unknown as Lead['source'],
+        // The backend has no priority field; urgency is derived from escalations.
+        priority: escalations >= 2 ? 'CRITICAL' : escalations === 1 ? 'HIGH' : 'MEDIUM',
+        status: status as Lead['status'],
+        currentOwnerId: bl.currentOwnerId || bl.owner?.id || undefined,
+        assignedAt: bl.lastAssignedAt || undefined,
+        acknowledgementDeadline: bl.ackDeadline || undefined,
+        acknowledgedAt: bl.acknowledgedAt || undefined,
+        escalationLevel: bl.escalationLevel ?? 0,
+        contactId: bl.contactId || undefined,
+        notes: bl.message || '',
+        tags: escalations ? [`Escalated ${escalations}x`] : [],
+        createdAt: bl.createdAt,
+        updatedAt: bl.updatedAt,
+      };
+    });
     this.state.leads = mappedLeads;
     this.save();
   }
 
   public mergeBackendTeam(backendMembers: BackendTeamMember[]): void {
-    if (!backendMembers || backendMembers.length === 0) return;
+    if (!backendMembers) return;
     const activeWsId = this.state.activeWorkspaceId;
     const mappedUsers: User[] = backendMembers.map((bm) => ({
       id: bm.userId,
       workspaceId: activeWsId,
-      email: bm.email || `${bm.userId}@sunco-demo.test`,
+      email: bm.email || '',
       firstName: bm.name.split(' ')[0] || bm.name,
       lastName: bm.name.split(' ').slice(1).join(' ') || '',
       status: bm.status,
@@ -630,8 +649,9 @@ class AppStore {
       id: `avail_${bm.userId}`,
       workspaceId: activeWsId,
       userId: bm.userId,
-      status: bm.availability === 'AVAILABLE' ? 'AVAILABLE' : bm.availability === 'BUSY' ? 'BUSY' : 'AWAY',
-      statusReason: 'Synced from backend',
+      // ON_LEAVE is shown with the shared contract's AWAY value (labelled "ON LEAVE" in the UI).
+      status: bm.availability === 'ON_LEAVE' ? 'AWAY' : bm.availability,
+      statusReason: bm.telegramConfigured ? 'Telegram alerts linked' : 'Telegram not linked',
       isEligibleForAutoAssignment: bm.autoAssignEnabled,
       maxConcurrentActiveLeads: bm.maxOpenLeads || 10,
       currentActiveLeadCount: bm.openLeads || 0,

@@ -13,18 +13,20 @@ import { appStore } from './services/store';
 import { backendService } from './services/backendService';
 import { fetchHealthStatus } from './services/healthService';
 import { usePolling } from './hooks/usePolling';
-import { Shield, LogIn, Lock, AlertCircle } from 'lucide-react';
+import { onSyncRequested } from './services/sync';
+import { ApiClientError } from './services/apiClient';
+import { Shield, LogIn, AlertCircle } from 'lucide-react';
 
 function AppContent() {
-  const { isAuthenticated, login, user, hasPermission } = useAuth();
+  const { isAuthenticated, login, logout } = useAuth();
   const { showToast } = useToast();
 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
   const [leadsInitialFilter, setLeadsInitialFilter] = useState<'all' | 'overdue' | 'today' | 'unassigned'>('all');
 
   // Real Login Screen State
-  const [loginEmail, setLoginEmail] = useState('admin@sunco-demo.test');
-  const [loginPassword, setLoginPassword] = useState('Password123!');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -33,31 +35,13 @@ function AppContent() {
 
   // App Store Reactive State
   const [leads, setLeads] = useState(appStore.getLeads());
-  const [opportunities, setOpportunities] = useState(appStore.getOpportunities());
-  const [pipelines, setPipelines] = useState(appStore.getPipelines());
-  const [contacts, setContacts] = useState(appStore.getContacts());
-  const [companies, setCompanies] = useState(appStore.getCompanies());
-  const [customFields, setCustomFields] = useState(appStore.getCustomFields());
-  const [payments, setPayments] = useState(appStore.getPayments());
-  const [messages, setMessages] = useState(appStore.getMessages());
-  const [appointments, setAppointments] = useState(appStore.getAppointments());
   const [availabilities, setAvailabilities] = useState(appStore.getAvailabilities());
-  const [auditEvents, setAuditEvents] = useState(appStore.getAuditEvents());
   const [users, setUsers] = useState(appStore.getUsers());
 
   // Sync with store
   const syncFromStore = useCallback(() => {
     setLeads([...appStore.getLeads()]);
-    setOpportunities([...appStore.getOpportunities()]);
-    setPipelines([...appStore.getPipelines()]);
-    setContacts([...appStore.getContacts()]);
-    setCompanies([...appStore.getCompanies()]);
-    setCustomFields([...appStore.getCustomFields()]);
-    setPayments([...appStore.getPayments()]);
-    setMessages([...appStore.getMessages()]);
-    setAppointments([...appStore.getAppointments()]);
     setAvailabilities([...appStore.getAvailabilities()]);
-    setAuditEvents([...appStore.getAuditEvents()]);
     setUsers([...appStore.getUsers()]);
   }, []);
 
@@ -79,53 +63,35 @@ function AppContent() {
     checkHealth();
   }, [checkHealth]);
 
-  // Sync leads & team directly from backend if available
+  // Leads and team come from the backend; the server's escalation worker does all escalating.
   const syncFromBackend = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
-      const leadsRes = await backendService.getLeads();
-      if (leadsRes?.items && leadsRes.items.length > 0) {
-        appStore.mergeBackendLeads(leadsRes.items);
+      const [leadsRes, teamRes] = await Promise.all([backendService.getLeads(), backendService.getTeam()]);
+      appStore.mergeBackendTeam(teamRes.items || []);
+      appStore.mergeBackendLeads(leadsRes.items || []);
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 401) {
+        showToast('warning', 'Session ended', 'Please log in again.');
+        await logout();
+        return;
       }
-    } catch {
-      // Backend offline
+      // Network hiccup: keep showing the last data, next poll retries.
     }
-
-    try {
-      const teamRes = await backendService.getTeam();
-      if (teamRes?.items && teamRes.items.length > 0) {
-        appStore.mergeBackendTeam(teamRes.items);
-      }
-    } catch {
-      // Backend offline
-    }
-
     syncFromStore();
-  }, [syncFromStore]);
+  }, [isAuthenticated, logout, showToast, syncFromStore]);
 
-  // Polling: Every 10s checks SLA countdowns and polls latest records
+  // Any page that changes data asks for an immediate refresh.
+  useEffect(() => onSyncRequested(() => void syncFromBackend()), [syncFromBackend]);
+
+  // Poll every 5 s so new leads, escalations and countdowns stay current without a refresh.
   const pollRecords = useCallback(async () => {
-    const now = Date.now();
-    appStore.getLeads().forEach((lead) => {
-      if (
-        lead.status === 'ASSIGNED' &&
-        !lead.acknowledgedAt &&
-        lead.acknowledgementDeadline &&
-        new Date(lead.acknowledgementDeadline).getTime() < now
-      ) {
-        appStore.triggerEscalation(lead.id, 'Automatic 10s poll check: SLA timeout breached');
-      }
-    });
-
-    if (isBackendHealthy) {
-      await syncFromBackend();
-    } else {
-      syncFromStore();
-    }
-  }, [isBackendHealthy, syncFromBackend, syncFromStore]);
+    await syncFromBackend();
+  }, [syncFromBackend]);
 
   const { isRefreshing: isPollingRefreshing, triggerRefresh: manualSync } = usePolling(
     pollRecords,
-    10000,
+    5000,
     true
   );
 
@@ -230,14 +196,13 @@ function AppContent() {
           {/* Quick Preset Buttons for Seed Demo Accounts */}
           <div className="border-t border-[#242E30] pt-4 space-y-2">
             <span className="block text-[10px] font-mono text-[#8E9B9A] uppercase text-center tracking-wider">
-              Quick-Select Backend Seed Accounts:
+              Demo accounts (fills the email; type the demo password):
             </span>
             <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
               <button
                 type="button"
                 onClick={() => {
                   setLoginEmail('owner@sunco-demo.test');
-                  setLoginPassword('Password123!');
                 }}
                 className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
               >
@@ -249,7 +214,6 @@ function AppContent() {
                 type="button"
                 onClick={() => {
                   setLoginEmail('admin@sunco-demo.test');
-                  setLoginPassword('Password123!');
                 }}
                 className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
               >
@@ -261,7 +225,6 @@ function AppContent() {
                 type="button"
                 onClick={() => {
                   setLoginEmail('manager@sunco-demo.test');
-                  setLoginPassword('Password123!');
                 }}
                 className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
               >
@@ -273,7 +236,6 @@ function AppContent() {
                 type="button"
                 onClick={() => {
                   setLoginEmail('bilal@sunco-demo.test');
-                  setLoginPassword('Password123!');
                 }}
                 className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
               >
@@ -284,35 +246,6 @@ function AppContent() {
           </div>
         </div>
       </div>
-    );
-  }
-
-  // Check tab permissions
-  if (currentTab === 'team' && !hasPermission('user:manage') && !hasPermission('role:manage') && user.baseLevel !== 'OWNER' && user.baseLevel !== 'ADMIN') {
-    return (
-      <Shell
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
-        isBackendHealthy={isBackendHealthy}
-        onRefreshHealth={checkHealth}
-        isPollingRefreshing={isPollingRefreshing}
-        onManualSync={manualSync}
-        overdueCount={overdueCount}
-      >
-        <div className="p-8 text-center rounded-xl bg-[#171E1F] border border-[#FF5C5C]/30 max-w-lg mx-auto my-12 space-y-3">
-          <Lock className="h-8 w-8 text-[#FF5C5C] mx-auto" />
-          <h2 className="text-lg font-bold text-[#F5F7F2]">Permission Denied</h2>
-          <p className="text-xs text-[#8E9B9A] leading-relaxed">
-            Your active role <strong className="text-[#FF5C5C] font-mono">[{user.baseLevel}]</strong> lacks administrative authority to access Team Governance & RBAC.
-          </p>
-          <button
-            onClick={() => setCurrentTab('dashboard')}
-            className="mt-4 px-4 py-2 rounded-lg bg-[#0D1112] text-[#B7F45B] border border-[#242E30] text-xs font-mono"
-          >
-            Return to Operations Dashboard
-          </button>
-        </div>
-      </Shell>
     );
   }
 
@@ -327,15 +260,7 @@ function AppContent() {
       overdueCount={overdueCount}
     >
       {currentTab === 'dashboard' && (
-        <DashboardPage
-          leads={leads}
-          opportunities={opportunities}
-          payments={payments}
-          availabilities={availabilities}
-          appointments={appointments}
-          auditEvents={auditEvents}
-          onDrillDown={handleDrillDown}
-        />
+        <DashboardPage leads={leads} availabilities={availabilities} users={users} onDrillDown={handleDrillDown} />
       )}
 
       {currentTab === 'leads' && (
@@ -348,34 +273,15 @@ function AppContent() {
       )}
 
       {currentTab === 'crm' && (
-        <CrmPage
-          contacts={contacts}
-          companies={companies}
-          opportunities={opportunities}
-          pipelines={pipelines}
-          customFields={customFields}
-          payments={payments}
-          messages={messages}
-          appointments={appointments}
-        />
+        <CrmPage users={users} />
       )}
 
       {currentTab === 'integrations' && (
-        <IntegrationsPage
-          payments={payments}
-          messages={messages}
-          appointments={appointments}
-          users={users}
-          isBackendHealthy={isBackendHealthy}
-        />
+        <IntegrationsPage users={users} isBackendHealthy={isBackendHealthy} />
       )}
 
       {currentTab === 'team' && (
-        <TeamPage
-          users={users}
-          availabilities={availabilities}
-          auditEvents={auditEvents}
-        />
+        <TeamPage />
       )}
     </Shell>
   );

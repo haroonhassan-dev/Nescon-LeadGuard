@@ -79,6 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [isSessionExpired, setIsSessionExpired] = useState<boolean>(false);
 
+  // After a reload, restore the real workspace from the saved login membership.
+  useEffect(() => {
+    if (memberships[0] && appStore.getActiveWorkspace().id !== memberships[0].workspaceId) {
+      appStore.setWorkspaceFromMembership(memberships[0]);
+    }
+  }, [memberships]);
+
   // Sync workspace and store changes
   useEffect(() => {
     const unsub = appStore.subscribe(() => {
@@ -127,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       firstName: string,
       lastName: string,
       email: string,
-      password = 'Password123!'
+      password = ''
     ): Promise<Workspace> => {
       // Real backend signup - no fake fallback allowed per Priority 1
       const res = await backendService.signup({
@@ -145,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeMembership = res.memberships[0];
       if (activeMembership) {
         setActiveWorkspaceId(activeMembership.workspaceId);
+        appStore.setWorkspaceFromMembership(activeMembership);
       }
 
       const newWs: Workspace = {
@@ -197,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const login = useCallback(
-    async (email: string, password = 'Password123!'): Promise<boolean> => {
+    async (email: string, password = ''): Promise<boolean> => {
       // Real backend login - no fake fallback allowed per Priority 1
       const res: LoginResponseData = await backendService.login(email, password);
       updateToken(res.token);
@@ -207,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeMembership = res.memberships[0];
       if (activeMembership) {
         setActiveWorkspaceId(activeMembership.workspaceId);
+        appStore.setWorkspaceFromMembership(activeMembership);
         const extUser: ExtendedUserProfile = {
           id: res.user.id,
           workspaceId: activeMembership.workspaceId,
@@ -250,6 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(AUTH_MEMBERSHIPS_KEY);
     localStorage.removeItem(AUTH_PERSONA_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
+    appStore.clearAll();
     setIsSessionExpired(false);
   }, [updateToken]);
 
@@ -258,14 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!currentUser) return false;
       // Owner holds every permission implicitly (P0 RBAC rule)
       if (currentUser.baseLevel === 'OWNER') return true;
-      // Admin holds all standard permissions
-      if (currentUser.baseLevel === 'ADMIN') {
-        if (permission === 'role:manage' || permission === 'workspace:delete') {
-          return false; // Owner exclusive
-        }
-        return true;
-      }
-      // User level checks effective permissions list
+      // Everyone else: exactly the effective permissions the server returned at login
       return (
         currentUser.permissions?.includes(permission as string) ||
         currentUser.role?.permissions?.includes(permission as PermissionKey) ||
@@ -276,11 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   // Requirement: Opportunity value visibility protected by role and permission
-  const canViewOpportunityValues =
-    currentUser.baseLevel === 'OWNER' ||
-    currentUser.baseLevel === 'ADMIN' ||
-    hasPermission('opportunity:view_value') ||
-    hasPermission('opportunity:update');
+  const canViewOpportunityValues = hasPermission('opportunity:view_value');
 
   const simulateSessionExpiry = useCallback(() => {
     setIsSessionExpired(true);

@@ -23,22 +23,32 @@ export interface AuthUser {
   permissions: string[];
 }
 
+/** Lead as returned by the backend (server/src/modules/leads/service.ts presentLead). */
 export interface BackendLead {
   id: string;
-  workspaceId: string;
   title: string;
   contactName: string;
-  contactEmail?: string;
-  contactPhone?: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  message?: string | null;
   status: 'UNASSIGNED' | 'ASSIGNED' | 'ACKNOWLEDGED' | 'CLOSED';
   source: 'WEB_FORM' | 'WHATSAPP' | 'SMS' | 'MANUAL';
-  currentOwnerId?: string;
-  currentOwner?: { id: string; firstName: string; lastName: string } | null;
-  assignedAt?: string;
-  acknowledgementDeadline?: string;
-  acknowledgedAt?: string;
-  closedAt?: string;
-  closeOutcome?: string;
+  contactId?: string | null;
+  owner?: { id: string; name: string } | null;
+  currentOwnerId?: string | null;
+  escalationLevel?: number;
+  escalationCount?: number;
+  manualReassignCount?: number;
+  escalationExhausted?: boolean;
+  firstAssignedAt?: string | null;
+  lastAssignedAt?: string | null;
+  ackDeadline?: string | null;
+  remainingSeconds?: number | null;
+  acknowledgedAt?: string | null;
+  firstAcknowledgedAt?: string | null;
+  lastActivityAt?: string;
+  closedAt?: string | null;
+  version?: number;
   createdAt: string;
   updatedAt: string;
   reasons?: string[];

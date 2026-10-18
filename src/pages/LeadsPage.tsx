@@ -16,8 +16,8 @@ import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { appStore } from '../services/store';
 import { backendService } from '../services/backendService';
+import { requestSync, errorMessage } from '../services/sync';
 
 interface LeadsPageProps {
   leads: Lead[];
@@ -113,14 +113,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     }
     try {
       await backendService.claimLead(lead.id);
+      showToast('success', 'Lead Claimed', `You are now the single owner of "${lead.title}".`);
+      requestSync();
     } catch (err) {
-      console.warn('Real backend claim attempt (falling back to store):', err);
-    }
-    const res = appStore.claimLead(lead.id, { id: user.id, name: user.fullName });
-    if (res.success) {
-      showToast('success', 'Lead Claimed', `You are now the active single owner of "${lead.title}".`);
-    } else {
-      showToast('error', 'Single-Owner Conflict', res.error || 'Failed to claim lead.');
+      showToast('error', 'Could not claim', errorMessage(err));
     }
   };
 
@@ -131,14 +127,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     }
     try {
       await backendService.acknowledgeLead(lead.id);
+      showToast('success', 'Acknowledged', 'Escalation timer stopped.');
+      requestSync();
     } catch (err) {
-      console.warn('Real backend acknowledge attempt (falling back to store):', err);
-    }
-    const res = appStore.acknowledgeLead(lead.id, { id: user.id, name: user.fullName });
-    if (res.success) {
-      showToast('success', 'SLA Acknowledged', `Lead acknowledged on time. SLA escalation timer stopped.`);
-    } else {
-      showToast('error', 'Error', res.error);
+      showToast('error', 'Could not acknowledge', errorMessage(err));
     }
   };
 
@@ -148,35 +140,21 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
     try {
       await backendService.reassignLead(reassignLeadTarget.id, reassignOwnerId, reassignReason);
-    } catch (err) {
-      console.warn('Real backend reassign attempt (falling back to store):', err);
-    }
-
-    const res = appStore.reassignLead(
-      reassignLeadTarget.id,
-      reassignOwnerId,
-      reassignReason,
-      { id: user.id, name: user.fullName }
-    );
-
-    if (res.success) {
       const targetUser = users.find((u) => u.id === reassignOwnerId);
-      showToast(
-        'success',
-        'Lead Reassigned',
-        `Transferred to ${targetUser?.firstName || 'agent'}. SLA deadline renewed.`
-      );
+      showToast('success', 'Lead Reassigned', `Transferred to ${targetUser?.firstName || 'employee'}. New acknowledgement window started.`);
       setReassignLeadTarget(null);
-    } else {
-      showToast('error', 'Reassign Error', res.error);
+      requestSync();
+    } catch (err) {
+      showToast('error', 'Reassign refused', errorMessage(err));
     }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let created;
     try {
-      await backendService.createLead({
+      created = await backendService.createLead({
         contactName: newContactName,
         contactEmail: newContactEmail || undefined,
         contactPhone: newContactPhone || undefined,
@@ -184,31 +162,15 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         title: newTitle || undefined,
       });
     } catch (err) {
-      console.warn('Real backend create lead attempt (falling back to store):', err);
+      showToast('error', 'Lead not created', errorMessage(err));
+      return;
     }
-
-    const created = appStore.createLead(
-      {
-        title: newTitle,
-        contactName: newContactName,
-        contactEmail: newContactEmail,
-        contactPhone: newContactPhone,
-        companyName: newCompanyName,
-        source: newSource,
-        priority: newPriority,
-        estimatedValue: newValue,
-        notes: newNotes,
-      },
-      { id: user.id, name: user.fullName }
-    );
-
     showToast(
       'success',
-      'Inbound Lead Ingested',
-      created.currentOwnerId
-        ? `Auto-routed to active agent. SLA countdown active.`
-        : `Added to unassigned triage queue.`
+      'Lead created',
+      created.currentOwnerId ? 'Assigned by round-robin; the countdown is running.' : 'No one is Available, so it waits in the recovery queue.'
     );
+    requestSync();
 
     setIsCreateModalOpen(false);
     // Reset form
@@ -495,7 +457,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                           )}
 
                           {/* Acknowledge button (if assigned and not yet acknowledged) */}
-                          {lead.currentOwnerId && !lead.acknowledgedAt && (
+                          {lead.currentOwnerId === user.id && !lead.acknowledgedAt && (
                             <button
                               onClick={() => handleAcknowledge(lead)}
                               className="px-2.5 py-1 rounded bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-[11px] font-mono uppercase tracking-wider"

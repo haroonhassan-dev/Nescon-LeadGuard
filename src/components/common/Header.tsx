@@ -8,12 +8,10 @@ import {
   Check,
   Menu,
   X,
-  AlertTriangle,
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from './StatusBadge';
-import { DEMO_PERSONAS } from '../../mock/seedData';
 
 interface HeaderProps {
   isBackendHealthy: boolean | null;
@@ -34,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMobileMenuOpen,
   onOpenSignupModal,
 }) => {
-  const { user, workspace, workspaces, switchWorkspace, switchPersona, logout, simulateSessionExpiry } = useAuth();
+  const { user, workspace, workspaces, switchWorkspace, logout } = useAuth();
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const [showPersonaDropdown, setShowPersonaDropdown] = useState(false);
 
@@ -130,10 +128,10 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowWorkspaceDropdown(false);
               }}
               className="flex items-center gap-2 bg-[#0D1112] hover:bg-[#1F282A] border border-[#242E30] px-2.5 py-1.5 rounded-lg text-xs text-[#F5F7F2] transition-colors"
-              title="Switch Demo Persona to test RBAC"
+              title="Signed-in user"
             >
               <div className="h-5 w-5 rounded-full overflow-hidden bg-[#242E30] shrink-0 border border-[#B7F45B]/40">
-                <img src={user.avatarUrl} alt={user.fullName} className="h-full w-full object-cover" />
+                <span className="h-full w-full flex items-center justify-center text-[10px] font-bold text-[#B7F45B]">{(user.firstName || '?').charAt(0)}</span>
               </div>
               <span className="font-semibold hidden lg:inline">{user.firstName}</span>
               <span className="px-1.5 py-0.2 rounded text-[10px] font-mono uppercase bg-[#171E1F] border border-[#242E30] text-[#B7F45B]">
@@ -143,48 +141,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {showPersonaDropdown && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#171E1F] border border-[#242E30] shadow-2xl p-2 z-50 animate-fade-in">
-                <div className="px-3 py-1.5 text-[11px] font-mono text-[#8E9B9A] uppercase tracking-wider border-b border-[#242E30] mb-1">
-                  RBAC Base Levels & Roles
+              <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#171E1F] border border-[#242E30] shadow-2xl p-3 z-50 animate-fade-in space-y-2">
+                <div className="text-[11px] font-mono text-[#8E9B9A] uppercase tracking-wider">Signed in (server session)</div>
+                <div>
+                  <div className="text-sm font-semibold text-[#F5F7F2]">{user.fullName}</div>
+                  <div className="text-[11px] font-mono text-[#8E9B9A]">{user.email}</div>
+                  <div className="mt-1 text-[10px] font-mono">
+                    <span className="text-[#B7F45B]">[{user.baseLevel}]</span>{' '}
+                    <span className="text-[#8E9B9A]">Role: {user.role?.name || user.baseLevel}</span>
+                  </div>
                 </div>
-                {(Object.keys(DEMO_PERSONAS) as Array<'owner' | 'admin' | 'manager' | 'agent' | 'readonly'>).map((key) => {
-                  const p = DEMO_PERSONAS[key];
-                  const isActive = user.id === p.id;
-                  const baseLevel = key === 'owner' ? 'OWNER' : key === 'admin' ? 'ADMIN' : 'USER';
-                  const roleLabel = key === 'manager' ? 'Role: Manager' : key === 'agent' ? 'Role: User/Agent' : key === 'readonly' ? 'Role: Auditor' : 'Base Authority';
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        switchPersona(key);
-                        setShowPersonaDropdown(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-colors ${
-                        isActive
-                          ? 'bg-[#B7F45B]/10 text-[#B7F45B] border border-[#B7F45B]/30'
-                          : 'text-[#F5F7F2] hover:bg-[#0D1112]'
-                      }`}
-                    >
-                      <img src={p.avatarUrl} alt={p.fullName} className="h-6 w-6 rounded-full object-cover border border-[#242E30]" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate">{p.fullName}</div>
-                        <div className="text-[10px] font-mono text-[#8E9B9A]">
-                          <span className="text-[#B7F45B]">[{baseLevel}]</span> {roleLabel}
-                        </div>
-                      </div>
-                      {isActive && <Check className="h-3.5 w-3.5 text-[#B7F45B] shrink-0" />}
-                    </button>
-                  );
-                })}
-                <div className="border-t border-[#242E30] mt-1 pt-1">
-                  <button
-                    onClick={simulateSessionExpiry}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#F5A623] hover:bg-[#0D1112] transition-colors"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Simulate Expired Session
-                  </button>
+                <div className="text-[10px] text-[#8E9B9A]">To test another role, log out and sign in as that user.</div>
+                <div className="border-t border-[#242E30] pt-1">
                   <button
                     onClick={logout}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#FF5C5C] hover:bg-[#0D1112] transition-colors"

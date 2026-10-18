@@ -1,299 +1,289 @@
-import React, { useState } from 'react';
-import {
-  Users,
-  ShieldCheck,
-  Calendar,
-  FileCode,
-  Clock,
-  Zap,
-  UserPlus
-} from 'lucide-react';
-import { User } from '@shared/user';
-import { EmployeeAvailability } from '@shared/availability';
-import { AuditEvent } from '@shared/audit';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Users, ShieldCheck, Calendar, FileCode, Clock, UserPlus, Plus, Trash2, Copy } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
+import { inputCls } from '../components/common/FieldInput';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { appStore } from '../services/store';
 import { backendService } from '../services/backendService';
+import { BackendTeamMember } from '../types';
+import { liveApi, ApiRole, AssignmentSettings, EscalationLevel } from '../services/liveApi';
+import { errorMessage, onSyncRequested, requestSync } from '../services/sync';
 
-interface TeamPageProps {
-  users: User[];
-  availabilities: EmployeeAvailability[];
-  auditEvents: AuditEvent[];
-}
+type Tab = 'members' | 'availability' | 'roles' | 'sla' | 'audit';
+type Availability = 'AVAILABLE' | 'BUSY' | 'ON_LEAVE' | 'OFFLINE';
+type AuditRow = Awaited<ReturnType<typeof liveApi.audit>>['items'][number];
 
-export const TeamPage: React.FC<TeamPageProps> = ({
-  users,
-  availabilities,
-  auditEvents,
-}) => {
-  const { workspace, hasPermission } = useAuth();
+const card = 'bg-[#171E1F] border border-[#242E30] rounded-xl';
+const btn = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide disabled:opacity-50';
+const ghost = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D1112] text-[#8E9B9A] hover:text-[#F5F7F2] text-xs border border-[#242E30] disabled:opacity-50';
+const label = 'block text-xs font-mono text-[#8E9B9A] uppercase mb-1';
+const availColor: Record<Availability, string> = {
+  AVAILABLE: 'text-[#B7F45B]',
+  BUSY: 'text-[#F5A623]',
+  ON_LEAVE: 'text-[#8E9B9A]',
+  OFFLINE: 'text-[#FF5C5C]',
+};
+
+const PERMISSION_HELP: Record<string, string> = {
+  'lead:read': 'See own leads',
+  'lead:read_all': 'See every lead + recovery queue',
+  'lead:create': 'Create leads',
+  'lead:update': 'Add notes / close leads',
+  'lead:claim': 'Claim unassigned leads',
+  'lead:reassign': 'Reassign leads manually',
+  'contact:export': 'Export contacts',
+  'opportunity:export': 'Export deals',
+  'opportunity:view_value': 'See deal values (else hidden)',
+  'pipeline:manage': 'Edit pipelines & stages',
+  'field:manage': 'Create custom fields',
+  'user:manage': 'Invite & manage members',
+  'role:manage': 'Edit roles & permissions',
+  'assignment:manage': 'Assignment rules & others’ availability',
+  'integration:manage': 'Connect / change integrations',
+  'audit:read': 'Read the audit log',
+  'dashboard:company': 'Company-wide dashboard',
+};
+
+export const TeamPage: React.FC = () => {
+  const { user, hasPermission } = useAuth();
   const { showToast } = useToast();
+  const [tab, setTab] = useState<Tab>('members');
+  const [busy, setBusy] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'members' | 'shifts' | 'roles' | 'sla' | 'audit'>('members');
+  const [team, setTeam] = useState<BackendTeamMember[]>([]);
+  const [roles, setRoles] = useState<ApiRole[]>([]);
+  const [catalog, setCatalog] = useState<string[]>([]);
+  const [settings, setSettings] = useState<AssignmentSettings | null>(null);
+  const [draft, setDraft] = useState<AssignmentSettings | null>(null);
 
-  // Member invite modal
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState('AGENT');
-
-  // Audit filter state
-  const [auditActionFilter, setAuditActionFilter] = useState<string>('ALL');
-
-  // SLA timeout setting
-  const [currentTimeout, setCurrentTimeout] = useState(
-    workspace.settings.defaultAcknowledgementTimeoutMinutes || 15
-  );
-
+  const canManageUsers = hasPermission('user:manage');
+  const canManageRoles = hasPermission('role:manage');
+  const canManageAssignment = hasPermission('assignment:manage');
   const canReadAudit = hasPermission('audit:read');
+  const isOwner = user.baseLevel === 'OWNER';
 
-  const handleInviteSubmit = async (e: React.FormEvent) => {
+  const load = useCallback(async () => {
+    try {
+      setTeam((await backendService.getTeam()).items);
+    } catch (err) {
+      showToast('error', 'Could not load team', errorMessage(err));
+    }
+    if (canManageUsers || canManageRoles) {
+      try {
+        const p = await liveApi.permissions();
+        setRoles(p.roles);
+        setCatalog(p.catalog);
+      } catch {
+        /* no permission: roles tab stays read-only */
+      }
+    }
+    try {
+      const s = await liveApi.settings();
+      setSettings(s);
+      setDraft((d) => (d && d.version === s.version ? d : s));
+    } catch {
+      /* settings readable by every member; ignore transient errors */
+    }
+  }, [canManageUsers, canManageRoles, showToast]);
+
+  useEffect(() => {
+    void load();
+    return onSyncRequested(() => void load());
+  }, [load]);
+
+  const act = async (fn: () => Promise<unknown>, ok: string, detail = 'Saved on the server.') => {
+    setBusy(true);
+    try {
+      await fn();
+      showToast('success', ok, detail);
+      await load();
+      requestSync();
+    } catch (err) {
+      showToast('error', 'Refused', errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ---------------- Invite ----------------
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invite, setInvite] = useState<{ email: string; level: 'USER' | 'ADMIN'; roleId: string }>({ email: '', level: 'USER', roleId: '' });
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true);
     try {
-      const res = await backendService.inviteMember({
-        email: inviteEmail,
-        baseLevel: inviteRole === 'ADMIN' ? 'ADMIN' : 'USER',
-        roleId: 'role_agent',
-      });
-      showToast(
-        'success',
-        'Invitation Generated',
-        `Onboarding link: ${res.inviteUrl || inviteEmail}`
-      );
+      const roleId = invite.roleId || roles.find((r) => r.name === (invite.level === 'ADMIN' ? 'Admin' : 'User'))?.id || '';
+      const r = await liveApi.invite(invite.email, invite.level, roleId);
+      setInviteLink(r.inviteUrl);
+      showToast('success', 'Invitation created', `Share the link with ${r.email}.`);
     } catch (err) {
-      console.warn('Real backend invite attempt (falling back to local):', err);
-      showToast(
-        'success',
-        'Invitation Dispatched',
-        `Onboarding link generated and sent to ${inviteEmail} with role [${inviteRole}].`
-      );
+      showToast('error', 'Invite refused', errorMessage(err));
+    } finally {
+      setBusy(false);
     }
-    setIsInviteModalOpen(false);
-    setInviteEmail('');
-    setInviteName('');
   };
 
-  const handleUpdateAvailabilityStatus = async (
-    userId: string,
-    newStatus: EmployeeAvailability['status'],
-    isEligible: boolean
-  ) => {
+  // ---------------- Availability ----------------
+  const setAvailability = async (m: BackendTeamMember, availability: Availability) => {
+    setBusy(true);
     try {
-      const backendStatus =
-        newStatus === 'AVAILABLE' ? 'AVAILABLE' : newStatus === 'BUSY' ? 'BUSY' : 'OFFLINE';
-      await backendService.updateAvailability(userId, backendStatus);
+      const r = await liveApi.setAvailability(m.userId === user.id ? 'me' : m.userId, availability);
+      showToast(
+        'success',
+        `${m.name}: ${availability.replace('_', ' ')}`,
+        r.reassigned ? `${r.reassigned} unacknowledged lead(s) reassigned immediately. ${r.policyDescription}` : r.policyDescription
+      );
+      await load();
+      requestSync();
     } catch (err) {
-      console.warn('Real backend availability update attempt (falling back to store):', err);
+      showToast('error', 'Status not changed', errorMessage(err));
+    } finally {
+      setBusy(false);
     }
-    appStore.updateAvailability(userId, newStatus, isEligible);
-    showToast('success', 'Status Updated', `Employee availability marked as ${newStatus}.`);
   };
+
+  // ---------------- Roles ----------------
+  const [newRoleName, setNewRoleName] = useState('');
+  const togglePermission = (role: ApiRole, perm: string) => {
+    const next = role.permissions.includes(perm) ? role.permissions.filter((p) => p !== perm) : [...role.permissions, perm];
+    void act(() => liveApi.updateRole(role.id, { permissions: next }), `${role.name} updated`, `${perm} ${role.permissions.includes(perm) ? 'removed' : 'granted'}.`);
+  };
+
+  // ---------------- Audit ----------------
+  const [audit, setAudit] = useState<AuditRow[]>([]);
+  const [auditActions, setAuditActions] = useState<string[]>([]);
+  const [auditFilter, setAuditFilter] = useState({ action: '', actorId: '', from: '', to: '' });
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPages, setAuditPages] = useState(1);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const loadAudit = useCallback(async () => {
+    if (!canReadAudit) return;
+    try {
+      const r = await liveApi.audit({
+        page: auditPage,
+        limit: 25,
+        action: auditFilter.action || undefined,
+        actorId: auditFilter.actorId || undefined,
+        from: auditFilter.from ? new Date(auditFilter.from).toISOString() : undefined,
+        to: auditFilter.to ? new Date(`${auditFilter.to}T23:59:59`).toISOString() : undefined,
+      });
+      setAudit(r.items);
+      setAuditActions(r.availableActions);
+      setAuditPages(r.pagination.totalPages);
+    } catch (err) {
+      showToast('error', 'Audit log not loaded', errorMessage(err));
+    }
+  }, [auditFilter, auditPage, canReadAudit, showToast]);
+  useEffect(() => {
+    if (tab === 'audit') void loadAudit();
+  }, [tab, loadAudit]);
+
+  // ---------------- Settings ----------------
+  const saveSettings = () => {
+    if (!draft) return;
+    const { acknowledgedLeadPolicyDescription: _d, ...body } = draft;
+    void act(() => liveApi.updateSettings(body), 'Assignment rules saved');
+  };
+  const updateLevel = (i: number, patch: Partial<EscalationLevel>) =>
+    draft && setDraft({ ...draft, escalationLevels: draft.escalationLevels.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+
+  const tabBtn = (id: Tab, icon: React.ReactNode, text: string) => (
+    <button onClick={() => setTab(id)} className={`pb-3 border-b-2 font-medium flex items-center gap-2 whitespace-nowrap ${tab === id ? 'border-[#B7F45B] text-[#B7F45B]' : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'}`}>
+      {icon}<span>{text}</span>
+    </button>
+  );
+  const editablePerms = catalog.length ? catalog : Object.keys(PERMISSION_HELP);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#242E30] pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F7F2]">
-              Team Governance & System RBAC
-            </h1>
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#B7F45B]/10 border border-[#B7F45B]/30 text-[#B7F45B] px-2 py-0.5 rounded">
-              SERVER-ENFORCED
-            </span>
-          </div>
-          <p className="text-xs text-[#8E9B9A] mt-0.5">
-            Role hierarchy, fine-grained permission matrix, shift availability, and immutable audit trail
-          </p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F7F2]">Team, Roles & Rules</h1>
+          <p className="text-xs text-[#8E9B9A] mt-0.5">Base levels Owner / Admin / User; roles are permission sets. Every change is enforced and audited by the server.</p>
         </div>
-
-        <button
-          onClick={() => setIsInviteModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
-        >
-          <UserPlus className="h-4 w-4" />
-          Invite Team Member
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-[#242E30] gap-4 text-xs font-mono">
-        <button
-          onClick={() => setActiveTab('members')}
-          className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'members'
-              ? 'border-[#B7F45B] text-[#B7F45B]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
-          }`}
-        >
-          <Users className="h-3.5 w-3.5" />
-          <span>Members Directory ({users.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('shifts')}
-          className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'shifts'
-              ? 'border-[#B7F45B] text-[#B7F45B]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
-          }`}
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          <span>Employee Availability & Capacity</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('roles')}
-          className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'roles'
-              ? 'border-[#B7F45B] text-[#B7F45B]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
-          }`}
-        >
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>RBAC Permission Matrix</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('sla')}
-          className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'sla'
-              ? 'border-[#B7F45B] text-[#B7F45B]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
-          }`}
-        >
-          <Clock className="h-3.5 w-3.5" />
-          <span>SLA & Escalation Policies</span>
-        </button>
-
-        {canReadAudit && (
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'audit'
-                ? 'border-[#B7F45B] text-[#B7F45B]'
-                : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
-            }`}
-          >
-            <FileCode className="h-3.5 w-3.5" />
-            <span>Audit Trail ({auditEvents.length})</span>
-          </button>
+        {canManageUsers && (
+          <button className={btn} onClick={() => { setInviteLink(null); setInviteOpen(true); }}><UserPlus className="h-4 w-4" /> Invite member</button>
         )}
       </div>
 
-      {/* TAB 1: MEMBERS DIRECTORY */}
-      {activeTab === 'members' && (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl overflow-hidden shadow-xl">
+      <div className="flex border-b border-[#242E30] gap-4 text-xs font-mono overflow-x-auto">
+        {tabBtn('members', <Users className="h-3.5 w-3.5" />, `Members (${team.length})`)}
+        {tabBtn('availability', <Calendar className="h-3.5 w-3.5" />, 'Availability')}
+        {(canManageRoles || canManageUsers) && tabBtn('roles', <ShieldCheck className="h-3.5 w-3.5" />, 'Roles & permissions')}
+        {tabBtn('sla', <Clock className="h-3.5 w-3.5" />, 'Assignment & escalation')}
+        {canReadAudit && tabBtn('audit', <FileCode className="h-3.5 w-3.5" />, 'Audit log')}
+      </div>
+
+      {/* ---------------- MEMBERS ---------------- */}
+      {tab === 'members' && (
+        <div className={`${card} overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase tracking-wider">
-                  <th className="py-3 px-4">Member</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Role Tier</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Last Activity</th>
+                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase">
+                  <th className="py-3 px-4">Member</th><th className="py-3 px-4">Level</th><th className="py-3 px-4">Role</th><th className="py-3 px-4">Status</th><th className="py-3 px-4">Open leads</th><th className="py-3 px-4">Telegram</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#242E30]">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#1F282A]/50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={u.avatarUrl}
-                          alt={u.firstName}
-                          className="h-7 w-7 rounded-full object-cover border border-[#242E30]"
-                        />
-                        <div className="font-semibold text-sm text-[#F5F7F2]">
-                          {u.firstName} {u.lastName}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-[#8E9B9A]">{u.email}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#0D1112] border border-[#242E30] text-[#B7F45B]">
-                        {u.role?.name || u.roleId} ({u.role?.type})
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#B7F45B]/10 text-[#B7F45B]">
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-[#8E9B9A]">
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleTimeString() : 'Active'}
-                    </td>
-                  </tr>
-                ))}
+                {team.map((m) => {
+                  const editable = canManageUsers && m.baseLevel !== 'OWNER' && m.userId !== user.id && (isOwner || m.baseLevel !== 'ADMIN');
+                  return (
+                    <tr key={m.userId} className="hover:bg-[#1F282A]/50">
+                      <td className="py-3 px-4"><div className="font-semibold text-[#F5F7F2]">{m.name}{m.userId === user.id && <span className="text-[#8E9B9A] font-normal"> (you)</span>}</div><div className="font-mono text-[10px] text-[#8E9B9A]">{m.email ?? ''}</div></td>
+                      <td className="py-3 px-4">
+                        {editable && isOwner ? (
+                          <select aria-label={`Level for ${m.name}`} value={m.baseLevel} disabled={busy} onChange={(e) => void act(() => liveApi.updateMember(m.userId, { baseLevel: e.target.value as 'ADMIN' | 'USER' }), 'Level changed')} className={`${inputCls} w-28`}>
+                            <option value="ADMIN">ADMIN</option><option value="USER">USER</option>
+                          </select>
+                        ) : <span className="font-mono text-[#B7F45B]">{m.baseLevel}</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {editable && roles.length ? (
+                          <select aria-label={`Role for ${m.name}`} value={m.role?.id ?? ''} disabled={busy} onChange={(e) => void act(() => liveApi.updateMember(m.userId, { roleId: e.target.value }), 'Role changed')} className={`${inputCls} w-36`}>
+                            {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          </select>
+                        ) : <span className="text-[#F5F7F2]">{m.role?.name ?? (m.baseLevel === 'OWNER' ? 'All permissions' : '—')}</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {editable ? (
+                          <button className={ghost} disabled={busy} onClick={() => void act(() => liveApi.updateMember(m.userId, { status: m.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' }), m.status === 'ACTIVE' ? 'Member suspended (leads reassigned)' : 'Member reactivated')}>
+                            {m.status === 'ACTIVE' ? 'Active · suspend' : 'Suspended · reactivate'}
+                          </button>
+                        ) : <span className="font-mono text-[#B7F45B]">{m.status}</span>}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-[#F5F7F2]">{m.openLeads} / {m.maxOpenLeads}</td>
+                      <td className="py-3 px-4">{m.telegramConfigured ? <span className="font-mono text-[10px] text-[#B7F45B]">LINKED</span> : <span className="font-mono text-[10px] text-[#8E9B9A]">not linked</span>}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          {!isOwner && canManageUsers && <div className="p-3 text-[11px] text-[#8E9B9A] border-t border-[#242E30]">Admins cannot change the Owner or other Admins (enforced by the server).</div>}
         </div>
       )}
 
-      {/* TAB 2: EMPLOYEE AVAILABILITY & CAPACITY */}
-      {activeTab === 'shifts' && (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl p-6 space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-[#F5F7F2]">Shift Availability & Auto-Routing Eligibility</h3>
-            <p className="text-xs text-[#8E9B9A]">
-              Controls whether agents receive instant round-robin lead assignments
-            </p>
-          </div>
-
+      {/* ---------------- AVAILABILITY ---------------- */}
+      {tab === 'availability' && (
+        <div className="space-y-3">
+          {settings && <div className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] text-xs text-[#8E9B9A]"><span className="text-[#F5F7F2] font-semibold">Policy for acknowledged leads: </span>{settings.acknowledgedLeadPolicyDescription}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availabilities.map((avail) => {
-              const emp = users.find((u) => u.id === avail.userId);
-              if (!emp) return null;
-
+            {team.filter((m) => m.status === 'ACTIVE').map((m) => {
+              const canEdit = m.userId === user.id || canManageAssignment;
               return (
-                <div
-                  key={avail.id}
-                  className="p-4 rounded-xl bg-[#0D1112] border border-[#242E30] space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <img src={emp.avatarUrl} alt={emp.firstName} className="h-8 w-8 rounded-full object-cover" />
-                      <div>
-                        <div className="font-bold text-sm text-[#F5F7F2]">{emp.firstName} {emp.lastName}</div>
-                        <div className="text-[10px] font-mono text-[#8E9B9A]">{emp.role?.type}</div>
-                      </div>
-                    </div>
-
-                    <select
-                      value={avail.status}
-                      onChange={(e) =>
-                        handleUpdateAvailabilityStatus(
-                          avail.userId,
-                          e.target.value as EmployeeAvailability['status'],
-                          e.target.value === 'AVAILABLE'
-                        )
-                      }
-                      className="px-2.5 py-1 rounded bg-[#171E1F] border border-[#242E30] text-xs font-mono text-[#B7F45B] focus:outline-none focus:border-[#B7F45B]"
-                    >
-                      <option value="AVAILABLE">AVAILABLE</option>
-                      <option value="BUSY">BUSY</option>
-                      <option value="AWAY">AWAY</option>
-                      <option value="OFFLINE">OFFLINE</option>
-                    </select>
+                <div key={m.userId} className="p-4 rounded-xl bg-[#0D1112] border border-[#242E30] space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div><div className="font-bold text-sm text-[#F5F7F2]">{m.name}</div><div className="text-[10px] font-mono text-[#8E9B9A]">{m.role?.name ?? m.baseLevel}</div></div>
+                    {canEdit ? (
+                      <select aria-label={`Availability for ${m.name}`} value={m.availability} disabled={busy} onChange={(e) => void setAvailability(m, e.target.value as Availability)} className={`${inputCls} w-36 ${availColor[m.availability]}`}>
+                        <option value="AVAILABLE">AVAILABLE</option><option value="BUSY">BUSY</option><option value="ON_LEAVE">ON LEAVE</option><option value="OFFLINE">OFFLINE</option>
+                      </select>
+                    ) : <span className={`font-mono text-xs ${availColor[m.availability]}`}>{m.availability.replace('_', ' ')}</span>}
                   </div>
-
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono border-t border-[#242E30] pt-2.5">
-                    <div>
-                      <span className="text-[#8E9B9A] text-[10px] block">Active Lead Load:</span>
-                      <span className="text-[#F5F7F2] font-semibold">
-                        {avail.currentActiveLeadCount} / {avail.maxConcurrentActiveLeads} Max
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#8E9B9A] text-[10px] block">Auto-Assignment:</span>
-                      <span className={avail.isEligibleForAutoAssignment ? 'text-[#B7F45B]' : 'text-[#8E9B9A]'}>
-                        {avail.isEligibleForAutoAssignment ? 'ELIGIBLE' : 'SUSPENDED'}
-                      </span>
-                    </div>
+                    <div><span className="text-[#8E9B9A] text-[10px] block">Open leads</span><span className="text-[#F5F7F2]">{m.openLeads} / {m.maxOpenLeads}</span></div>
+                    <div><span className="text-[#8E9B9A] text-[10px] block">Receives new leads</span><span className={m.availability === 'AVAILABLE' && m.autoAssignEnabled ? 'text-[#B7F45B]' : 'text-[#8E9B9A]'}>{m.availability === 'AVAILABLE' && m.autoAssignEnabled ? 'YES' : 'NO'}</span></div>
                   </div>
                 </div>
               );
@@ -302,232 +292,188 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         </div>
       )}
 
-      {/* TAB 3: RBAC PERMISSION MATRIX */}
-      {activeTab === 'roles' && (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl p-6 space-y-4">
+      {/* ---------------- ROLES ---------------- */}
+      {tab === 'roles' && (
+        <div className={`${card} p-5 space-y-4`}>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-[#F5F7F2]">Role Permission Hierarchy (RBAC)</h3>
-              <span className="text-[10px] font-mono uppercase bg-[#B7F45B]/10 text-[#B7F45B] border border-[#B7F45B]/30 px-2 py-0.5 rounded">
-                BASE LEVELS: OWNER / ADMIN / USER
-              </span>
-            </div>
-            <p className="text-xs text-[#8E9B9A] mt-1">
-              Base authority levels are <strong className="text-[#F5F7F2]">Owner, Admin, User</strong>. <strong className="text-[#B7F45B]">Manager</strong> is a configurable permission-based role assigned to User accounts.
+            <h3 className="text-base font-bold text-[#F5F7F2]">Permission matrix</h3>
+            <p className="text-xs text-[#8E9B9A]">
+              The Owner holds every permission. Tick a box to grant or remove a permission for a role — it applies on the server immediately.
+              {!canManageRoles && ' (Read only: your role cannot edit permissions.)'}
             </p>
           </div>
-
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] text-[11px] uppercase">
-                  <th className="py-3 px-4">Permission Key</th>
-                  <th className="py-3 px-3 text-center text-[#B7F45B]">Owner<br/><span className="text-[9px] text-[#8E9B9A]">[Base Level]</span></th>
-                  <th className="py-3 px-3 text-center text-[#B7F45B]">Admin<br/><span className="text-[9px] text-[#8E9B9A]">[Base Level]</span></th>
-                  <th className="py-3 px-3 text-center text-[#B7F45B]">Manager<br/><span className="text-[9px] text-[#8E9B9A]">[User Role]</span></th>
-                  <th className="py-3 px-3 text-center text-[#B7F45B]">Agent<br/><span className="text-[9px] text-[#8E9B9A]">[User Role]</span></th>
-                  <th className="py-3 px-3 text-center text-[#8E9B9A]">Auditor<br/><span className="text-[9px] text-[#8E9B9A]">[User Role]</span></th>
+                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase">
+                  <th className="py-3 px-3">Permission</th>
+                  <th className="py-3 px-3 text-center text-[#B7F45B]">Owner</th>
+                  {roles.map((r) => <th key={r.id} className="py-3 px-3 text-center text-[#B7F45B]">{r.name}<div className="text-[9px] text-[#8E9B9A] normal-case">{r.memberCount} member(s)</div></th>)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#242E30]">
-                {[
-                  { key: 'lead:claim', desc: 'Claim unassigned leads', owner: true, admin: true, manager: true, agent: true, ro: false },
-                  { key: 'lead:reassign', desc: 'Manual lead reassignment', owner: true, admin: true, manager: true, agent: false, ro: false },
-                  { key: 'lead:escalate', desc: 'Trigger manual escalation', owner: true, admin: true, manager: true, agent: false, ro: false },
-                  { key: 'opportunity:read_value', desc: 'View unmasked deal values', owner: true, admin: true, manager: true, agent: false, ro: false },
-                  { key: 'integration:configure', desc: 'Modify webhook secrets & keys', owner: true, admin: true, manager: false, agent: false, ro: false },
-                  { key: 'audit:read', desc: 'Access immutable security audit log', owner: true, admin: true, manager: true, agent: false, ro: true },
-                  { key: 'role:manage', desc: 'Configure team roles & permissions', owner: true, admin: false, manager: false, agent: false, ro: false },
-                ].map((row) => (
-                  <tr key={row.key} className="hover:bg-[#1F282A]/50">
-                    <td className="py-2.5 px-4">
-                      <div className="font-bold text-[#F5F7F2]">{row.key}</div>
-                      <div className="text-[10px] text-[#8E9B9A] font-sans">{row.desc}</div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-[#B7F45B]">{row.owner ? '✓' : '—'}</td>
-                    <td className="py-2.5 px-3 text-center text-[#B7F45B]">{row.admin ? '✓' : '—'}</td>
-                    <td className="py-2.5 px-3 text-center text-[#B7F45B]">{row.manager ? '✓' : '—'}</td>
-                    <td className="py-2.5 px-3 text-center text-[#B7F45B]">{row.agent ? '✓' : '—'}</td>
-                    <td className="py-2.5 px-3 text-center text-[#8E9B9A]">{row.ro ? '✓' : '—'}</td>
+                {editablePerms.map((perm) => (
+                  <tr key={perm} className="hover:bg-[#1F282A]/50">
+                    <td className="py-2 px-3"><div className="font-mono text-[#F5F7F2]">{perm}</div>{PERMISSION_HELP[perm] && <div className="text-[10px] text-[#8E9B9A]">{PERMISSION_HELP[perm]}</div>}</td>
+                    <td className="py-2 px-3 text-center text-[#B7F45B]">✓</td>
+                    {roles.map((r) => (
+                      <td key={r.id} className="py-2 px-3 text-center">
+                        <input type="checkbox" aria-label={`${perm} for ${r.name}`} checked={r.permissions.includes(perm)} disabled={!canManageRoles || busy} onChange={() => togglePermission(r, perm)} className="h-4 w-4 accent-[#B7F45B]" />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {canManageRoles && (
+            <div className="flex gap-2 flex-wrap items-center pt-2 border-t border-[#242E30]">
+              <input aria-label="New role name" placeholder="New role name (e.g. Auditor)" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} className={`${inputCls} max-w-xs`} />
+              <button className={btn} disabled={!newRoleName.trim() || busy} onClick={() => { const n = newRoleName; setNewRoleName(''); void act(() => liveApi.createRole(n, ['lead:read', 'dashboard:read']), 'Role created'); }}><Plus className="h-4 w-4" /> Role</button>
+              {roles.filter((r) => r.memberCount === 0 && !r.isSystem).map((r) => (
+                <button key={r.id} className={ghost} disabled={busy} onClick={() => void act(() => liveApi.deleteRole(r.id), 'Role deleted')}><Trash2 className="h-3.5 w-3.5 text-[#FF5C5C]" /> {r.name}</button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* TAB 4: SLA & ESCALATION SETTINGS */}
-      {activeTab === 'sla' && (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl p-6 space-y-5 max-w-xl">
+      {/* ---------------- ASSIGNMENT & ESCALATION ---------------- */}
+      {tab === 'sla' && draft && (
+        <div className={`${card} p-5 space-y-5 max-w-3xl`}>
           <div>
-            <h3 className="text-base font-bold text-[#F5F7F2]">Default Lead SLA & Timeout Engine</h3>
-            <p className="text-xs text-[#8E9B9A]">
-              Controls the deadline countdown before automated Level 1 escalation triggers
-            </p>
+            <h3 className="text-base font-bold text-[#F5F7F2]">Assignment & escalation rules</h3>
+            <p className="text-xs text-[#8E9B9A]">Times are in seconds so escalation can be shown live. {!canManageAssignment && '(Read only for your role.)'}</p>
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
-                Acknowledgement Timeout: <span className="text-[#B7F45B] font-bold">{currentTimeout} Minutes</span>
-              </label>
-              <input
-                type="range"
-                min="5"
-                max="60"
-                step="5"
-                value={currentTimeout}
-                onChange={(e) => setCurrentTimeout(Number(e.target.value))}
-                className="w-full accent-[#B7F45B]"
-              />
-              <div className="flex justify-between text-[10px] font-mono text-[#8E9B9A] mt-1">
-                <span>5m (Fast Response)</span>
-                <span>15m (Standard)</span>
-                <span>60m (Extended)</span>
-              </div>
+          <fieldset disabled={!canManageAssignment || busy} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className={label} htmlFor="s-ack">Time to acknowledge (seconds)</label><input id="s-ack" type="number" min={5} value={draft.ackTimeoutSeconds} onChange={(e) => setDraft({ ...draft, ackTimeoutSeconds: Number(e.target.value) })} className={inputCls} /></div>
+              <div><label className={label} htmlFor="s-max">Max open leads per employee</label><input id="s-max" type="number" min={1} value={draft.maxOpenLeadsPerUser} onChange={(e) => setDraft({ ...draft, maxOpenLeadsPerUser: Number(e.target.value) })} className={inputCls} /></div>
+              <div><label className={label} htmlFor="s-backup">Designated backup</label>
+                <select id="s-backup" value={draft.backupUserId ?? ''} onChange={(e) => setDraft({ ...draft, backupUserId: e.target.value || null })} className={inputCls}>
+                  <option value="">None</option>{team.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
+                </select></div>
+              <div><label className={label} htmlFor="s-mgr">Manager (last level)</label>
+                <select id="s-mgr" value={draft.managerUserId ?? ''} onChange={(e) => setDraft({ ...draft, managerUserId: e.target.value || null })} className={inputCls}>
+                  <option value="">None</option>{team.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
+                </select></div>
+              <div><label className={label} htmlFor="s-idle">Recovery queue: idle after (seconds)</label><input id="s-idle" type="number" min={10} value={draft.idleThresholdSeconds} onChange={(e) => setDraft({ ...draft, idleThresholdSeconds: Number(e.target.value) })} className={inputCls} /></div>
+              <div><label className={label} htmlFor="s-esc">Recovery queue: escalated at least</label><input id="s-esc" type="number" min={1} value={draft.recoveryEscalationThreshold} onChange={(e) => setDraft({ ...draft, recoveryEscalationThreshold: Number(e.target.value) })} className={inputCls} /></div>
             </div>
-
-            <div className="p-3.5 rounded-lg bg-[#0D1112] border border-[#242E30] space-y-2 text-xs">
-              <div className="font-semibold text-[#F5F7F2] flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-[#B7F45B]" />
-                Escalation Workflow Progression:
-              </div>
-              <ul className="text-[11px] text-[#8E9B9A] space-y-1 list-disc pl-4">
-                <li><strong className="text-[#F5F7F2]">Level 1:</strong> SMS & In-app reminder dispatched to assigned agent.</li>
-                <li><strong className="text-[#F5F7F2]">Level 2:</strong> Reassigned automatically to shift manager.</li>
-                <li><strong className="text-[#F5F7F2]">Level 3:</strong> Telegram broadcast sent to executive alert channel.</li>
-              </ul>
+            <div><label className={label} htmlFor="s-pol">When an owner goes On leave / Offline, acknowledged leads…</label>
+              <select id="s-pol" value={draft.acknowledgedLeadPolicy} onChange={(e) => setDraft({ ...draft, acknowledgedLeadPolicy: e.target.value as AssignmentSettings['acknowledgedLeadPolicy'] })} className={inputCls}>
+                <option value="KEEP_WITH_OWNER">stay with the owner (only unacknowledged leads move)</option>
+                <option value="REASSIGN">are reassigned too</option>
+              </select></div>
+            <div className="space-y-2">
+              <div className={label}>Escalation chain (after the first window expires)</div>
+              {draft.escalationLevels.map((l, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-[#8E9B9A] w-14">Level {i + 1}</span>
+                  <select aria-label={`Level ${i + 1} target`} value={l.target} onChange={(e) => updateLevel(i, { target: e.target.value as EscalationLevel['target'] })} className={`${inputCls} w-48`}>
+                    <option value="NEXT_ELIGIBLE">Next available employee</option><option value="BACKUP">Designated backup</option><option value="MANAGER">Manager</option>
+                  </select>
+                  <input aria-label={`Level ${i + 1} seconds`} type="number" min={5} value={l.timeoutSeconds} onChange={(e) => updateLevel(i, { timeoutSeconds: Number(e.target.value) })} className={`${inputCls} w-28`} />
+                  <span className="text-[11px] text-[#8E9B9A]">s</span>
+                  <button aria-label={`Remove level ${i + 1}`} type="button" className={ghost} disabled={draft.escalationLevels.length <= 1} onClick={() => setDraft({ ...draft, escalationLevels: draft.escalationLevels.filter((_, j) => j !== i) })}><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+              <button type="button" className={ghost} disabled={draft.escalationLevels.length >= 10} onClick={() => setDraft({ ...draft, escalationLevels: [...draft.escalationLevels, { target: 'MANAGER', timeoutSeconds: 60 }] })}><Plus className="h-3.5 w-3.5" /> Add level</button>
             </div>
-
-            <button
-              onClick={() => {
-                workspace.settings.defaultAcknowledgementTimeoutMinutes = currentTimeout;
-                showToast('success', 'SLA Policy Updated', `Timeout window updated to ${currentTimeout} minutes.`);
-              }}
-              className="px-5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase"
-            >
-              Save SLA Policy
-            </button>
-          </div>
+          </fieldset>
+          {canManageAssignment && (
+            <div className="flex gap-2">
+              <button className={btn} disabled={busy} onClick={saveSettings}>Save rules</button>
+              <button className={ghost} disabled={busy} onClick={() => settings && setDraft(settings)}>Discard changes</button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* TAB 5: IMMUTABLE AUDIT TRAIL */}
-      {activeTab === 'audit' && (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl overflow-hidden shadow-xl">
-          <div className="p-4 border-b border-[#242E30] bg-[#0D1112] flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#F5F7F2]">Immutable Audit Event Trail</h3>
-            <select
-              value={auditActionFilter}
-              onChange={(e) => setAuditActionFilter(e.target.value)}
-              className="px-2.5 py-1 rounded bg-[#171E1F] border border-[#242E30] text-xs font-mono text-[#F5F7F2] focus:outline-none focus:border-[#B7F45B]"
-            >
-              <option value="ALL">All Actions</option>
-              <option value="LEAD_CREATED">LEAD_CREATED</option>
-              <option value="LEAD_CLAIMED">LEAD_CLAIMED</option>
-              <option value="LEAD_ACKNOWLEDGED">LEAD_ACKNOWLEDGED</option>
-              <option value="LEAD_ESCALATED">LEAD_ESCALATED</option>
-              <option value="LEAD_REASSIGNED">LEAD_REASSIGNED</option>
-              <option value="PAYMENT_PROCESSED">PAYMENT_PROCESSED</option>
-              <option value="MESSAGE_SENT">MESSAGE_SENT</option>
-              <option value="APPOINTMENT_SCHEDULED">APPOINTMENT_SCHEDULED</option>
-            </select>
+      {/* ---------------- AUDIT ---------------- */}
+      {tab === 'audit' && (
+        <div className={`${card} overflow-hidden`}>
+          <div className="p-4 border-b border-[#242E30] bg-[#0D1112] flex flex-wrap gap-2 items-end">
+            <div><label className={label} htmlFor="a-act">Event</label>
+              <select id="a-act" value={auditFilter.action} onChange={(e) => { setAuditPage(1); setAuditFilter({ ...auditFilter, action: e.target.value }); }} className={`${inputCls} w-52`}>
+                <option value="">All events</option>{auditActions.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select></div>
+            <div><label className={label} htmlFor="a-user">User</label>
+              <select id="a-user" value={auditFilter.actorId} onChange={(e) => { setAuditPage(1); setAuditFilter({ ...auditFilter, actorId: e.target.value }); }} className={`${inputCls} w-44`}>
+                <option value="">Anyone</option>{team.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
+              </select></div>
+            <div><label className={label} htmlFor="a-from">From</label><input id="a-from" type="date" value={auditFilter.from} onChange={(e) => { setAuditPage(1); setAuditFilter({ ...auditFilter, from: e.target.value }); }} className={inputCls} /></div>
+            <div><label className={label} htmlFor="a-to">To</label><input id="a-to" type="date" value={auditFilter.to} onChange={(e) => { setAuditPage(1); setAuditFilter({ ...auditFilter, to: e.target.value }); }} className={inputCls} /></div>
+            <span className="text-[10px] text-[#8E9B9A] ml-auto">Entries cannot be edited or deleted.</span>
           </div>
-
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-[#242E30] text-[#8E9B9A] text-[11px] uppercase">
-                  <th className="py-2.5 px-4">Timestamp</th>
-                  <th className="py-2.5 px-4">Actor</th>
-                  <th className="py-2.5 px-4">Action</th>
-                  <th className="py-2.5 px-4">Entity</th>
-                  <th className="py-2.5 px-4">ID</th>
+                <tr className="border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase">
+                  <th className="py-2.5 px-4">When</th><th className="py-2.5 px-4">Who</th><th className="py-2.5 px-4">Event</th><th className="py-2.5 px-4">Target</th><th className="py-2.5 px-4"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#242E30]">
-                {auditEvents
-                  .filter((e) => auditActionFilter === 'ALL' || e.action === auditActionFilter)
-                  .map((evt) => (
-                    <tr key={evt.id} className="hover:bg-[#1F282A]/50">
-                      <td className="py-2.5 px-4 text-[#8E9B9A]">
-                        {new Date(evt.timestamp).toLocaleTimeString()}
-                      </td>
-                      <td className="py-2.5 px-4 text-[#F5F7F2]">
-                        {evt.actor.name || evt.actor.id} ({evt.actor.type})
-                      </td>
-                      <td className="py-2.5 px-4 text-[#B7F45B] font-bold">{evt.action}</td>
-                      <td className="py-2.5 px-4 text-[#8E9B9A]">{evt.entityType}</td>
-                      <td className="py-2.5 px-4 text-[#8E9B9A] text-[11px]">{evt.entityId}</td>
+                {audit.length === 0 && <tr><td colSpan={5} className="py-4 px-4 text-[#8E9B9A]">No entries for these filters.</td></tr>}
+                {audit.map((e) => (
+                  <React.Fragment key={e.id}>
+                    <tr className="hover:bg-[#1F282A]/50">
+                      <td className="py-2.5 px-4 font-mono text-[#8E9B9A]">{new Date(e.createdAt).toLocaleString()}</td>
+                      <td className="py-2.5 px-4 text-[#F5F7F2]">{e.actorName ?? e.actorType}<span className="text-[10px] text-[#8E9B9A]"> ({e.actorType})</span></td>
+                      <td className="py-2.5 px-4 font-mono text-[#B7F45B]">{e.action}</td>
+                      <td className="py-2.5 px-4 text-[#8E9B9A]">{e.entityType}</td>
+                      <td className="py-2.5 px-4 text-right">{(e.previousState || e.newState) ? <button className={ghost} onClick={() => setExpanded(expanded === e.id ? null : e.id)}>{expanded === e.id ? 'Hide' : 'Before / after'}</button> : null}</td>
                     </tr>
-                  ))}
+                    {expanded === e.id && (
+                      <tr><td colSpan={5} className="px-4 pb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <pre className="p-2 rounded bg-[#0D1112] border border-[#242E30] text-[10px] text-[#8E9B9A] whitespace-pre-wrap break-all">Before: {JSON.stringify(e.previousState, null, 2)}</pre>
+                          <pre className="p-2 rounded bg-[#0D1112] border border-[#242E30] text-[10px] text-[#F5F7F2] whitespace-pre-wrap break-all">After: {JSON.stringify(e.newState, null, 2)}</pre>
+                        </div>
+                      </td></tr>
+                    )}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
+          </div>
+          <div className="p-3 flex items-center justify-between border-t border-[#242E30] text-xs">
+            <button className={ghost} disabled={auditPage <= 1} onClick={() => setAuditPage(auditPage - 1)}>Previous</button>
+            <span className="font-mono text-[#8E9B9A]">Page {auditPage} / {auditPages}</span>
+            <button className={ghost} disabled={auditPage >= auditPages} onClick={() => setAuditPage(auditPage + 1)}>Next</button>
           </div>
         </div>
       )}
 
-      {/* Modal: Invite Member */}
-      <Modal
-        isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
-        title="Invite New Team Member"
-        subtitle="Generates an authorized onboarding credential"
-      >
-        <form onSubmit={handleInviteSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Full Name *</label>
-            <input
-              type="text"
-              required
-              value={inviteName}
-              onChange={(e) => setInviteName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
-            />
+      <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite a team member" subtitle="Creates a one-time join link (valid 7 days)">
+        {inviteLink ? (
+          <div className="space-y-3 text-xs">
+            <div className="text-[#8E9B9A]">Send this link to the person. They choose their own password.</div>
+            <div className="flex items-center gap-2 p-2 rounded bg-[#0D1112] border border-[#B7F45B]/30">
+              <span className="text-[#B7F45B] truncate">{inviteLink}</span>
+              <button aria-label="Copy invite link" className={ghost} onClick={() => void navigator.clipboard.writeText(inviteLink).then(() => showToast('success', 'Copied', 'Invite link copied'))}><Copy className="h-3.5 w-3.5" /></button>
+            </div>
+            <div className="flex justify-end"><button className={btn} onClick={() => setInviteOpen(false)}>Done</button></div>
           </div>
-
-          <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Corporate Email *</label>
-            <input
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Assigned Role Tier</label>
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
-            >
-              <option value="AGENT">Service Agent (Frontline)</option>
-              <option value="MANAGER">Shift Manager (Escalations)</option>
-              <option value="ADMIN">Operations Admin (Full)</option>
-              <option value="READ_ONLY">Auditor (Read-Only)</option>
-            </select>
-          </div>
-
-          <div className="border-t border-[#242E30] pt-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setIsInviteModalOpen(false)}
-              className="px-4 py-2 rounded-lg bg-[#0D1112] text-[#8E9B9A] text-xs border border-[#242E30]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase"
-            >
-              Send Invite
-            </button>
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={submitInvite} className="space-y-3">
+            <div><label className={label} htmlFor="inv-email">Email *</label><input id="inv-email" type="email" required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} className={inputCls} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={label} htmlFor="inv-level">Base level</label>
+                <select id="inv-level" value={invite.level} onChange={(e) => setInvite({ ...invite, level: e.target.value as 'USER' | 'ADMIN' })} className={inputCls}>
+                  <option value="USER">User</option>{isOwner && <option value="ADMIN">Admin</option>}
+                </select></div>
+              <div><label className={label} htmlFor="inv-role">Role</label>
+                <select id="inv-role" value={invite.roleId} onChange={(e) => setInvite({ ...invite, roleId: e.target.value })} className={inputCls}>
+                  <option value="">Default for level</option>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select></div>
+            </div>
+            <div className="border-t border-[#242E30] pt-3 flex justify-end gap-2">
+              <button type="button" className={ghost} onClick={() => setInviteOpen(false)}>Cancel</button>
+              <button type="submit" className={btn} disabled={busy}>{busy ? 'Creating…' : 'Create invite link'}</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );
