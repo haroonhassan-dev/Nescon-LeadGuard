@@ -4,6 +4,7 @@ import { randomToken, sha256 } from '../../lib/crypto';
 import { SYSTEM_ROLES } from '../../lib/permissions';
 import { recordAudit } from '../../lib/audit';
 import { DEFAULT_ESCALATION_LEVELS } from '../leads/settings';
+import { ensureDefaultPipeline } from '../crm/service';
 
 export const SESSION_TTL_HOURS = Number(process.env.SESSION_TTL_HOURS) || 72;
 export const MAX_FAILED_LOGINS = 5;
@@ -61,6 +62,8 @@ export async function bootstrapWorkspace(tx: Tx, input: { name: string; ownerUse
       escalationLevels: DEFAULT_ESCALATION_LEVELS as unknown as Prisma.InputJsonValue,
     },
   });
+
+  await ensureDefaultPipeline(tx, workspace.id);
 
   await recordAudit(tx, {
     workspaceId: workspace.id,

@@ -236,37 +236,37 @@ model AssignmentSettings {
 }
 
 model Lead {
-  id                  String     @id @default(uuid())
-  workspaceId         String
-  title               String
-  contactName         String
-  contactEmail        String?
-  contactPhone        String?
-  message             String?
-  source              LeadSource
-  status              LeadStatus @default(UNASSIGNED)
-  contactId           String?
-  createdById         String?
+  id           String     @id @default(uuid())
+  workspaceId  String
+  title        String
+  contactName  String
+  contactEmail String?
+  contactPhone String?
+  message      String?
+  source       LeadSource
+  status       LeadStatus @default(UNASSIGNED)
+  contactId    String?
+  createdById  String?
 
   // Single owner. Changed only through conditional updates on `version`.
   currentOwnerId      String?
-  assignmentSeq       Int        @default(0) // matches the latest LeadAssignment.seq
-  escalationLevel     Int        @default(0) // 0 = first assignment; n = n-th step of the chain
-  escalationCount     Int        @default(0) // automatic escalations only
-  manualReassignCount Int        @default(0)
-  escalationExhausted Boolean    @default(false)
+  assignmentSeq       Int       @default(0) // matches the latest LeadAssignment.seq
+  escalationLevel     Int       @default(0) // 0 = first assignment; n = n-th step of the chain
+  escalationCount     Int       @default(0) // automatic escalations only
+  manualReassignCount Int       @default(0)
+  escalationExhausted Boolean   @default(false)
   firstAssignedAt     DateTime?
   lastAssignedAt      DateTime?
   ackDeadline         DateTime?
   acknowledgedAt      DateTime?
   firstAcknowledgedAt DateTime?
-  lastActivityAt      DateTime   @default(now())
+  lastActivityAt      DateTime  @default(now())
   closedAt            DateTime?
 
-  intakeKey           String? // external idempotency key (e.g. provider message id)
-  version             Int        @default(0)
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  intakeKey String? // external idempotency key (e.g. provider message id)
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   currentOwner  User?            @relation("LeadCurrentOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
@@ -290,19 +290,19 @@ model Lead {
 // Ownership history. UNIQUE(leadId, seq) is what makes "escalate exactly once" hold:
 // two workers escalating the same assignment both try to insert seq+1, and one fails.
 model LeadAssignment {
-  id          String         @id @default(uuid())
-  workspaceId String
-  leadId      String
-  seq         Int
-  userId      String?
-  kind        AssignmentKind
-  level       Int
-  reason      String
-  assignedAt  DateTime       @default(now())
-  deadline    DateTime?
+  id             String         @id @default(uuid())
+  workspaceId    String
+  leadId         String
+  seq            Int
+  userId         String?
+  kind           AssignmentKind
+  level          Int
+  reason         String
+  assignedAt     DateTime       @default(now())
+  deadline       DateTime?
   acknowledgedAt DateTime? // set when this owner acknowledged; drives personal response time
-  endedAt     DateTime?
-  endReason   String? // ACKNOWLEDGED | ACK_TIMEOUT | REASSIGNED | OWNER_UNAVAILABLE | CLOSED
+  endedAt        DateTime?
+  endReason      String? // ACKNOWLEDGED | ACK_TIMEOUT | REASSIGNED | OWNER_UNAVAILABLE | CLOSED
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
@@ -503,22 +503,25 @@ model Opportunity {
 // INTEGRATION-OWNED DATA (models owned here; adapters live in server/src/integrations)
 // ----------------------------------------------------
 model Payment {
-  id                String       @id @default(uuid())
-  workspaceId       String
-  leadId            String?
-  opportunityId     String?
-  contactId         String?
-  requestedById     String?
-  amount            Int // cents
-  currency          String       @default("usd")
-  status            String // PENDING | PAID | EXPIRED | FAILED | REFUNDED | PARTIALLY_REFUNDED
-  provider          String       @default("stripe")
-  providerReference String       @unique // checkout session / payment intent id
-  checkoutUrl       String?
-  refundedAmount    Int          @default(0)
-  paidAt            DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id                    String    @id @default(uuid())
+  workspaceId           String
+  leadId                String?
+  opportunityId         String?
+  contactId             String?
+  requestedById         String?
+  amount                Int // cents
+  currency              String    @default("usd")
+  status                String // PENDING | PAID | EXPIRED | FAILED | REFUNDED | PARTIALLY_REFUNDED
+  provider              String    @default("stripe")
+  providerReference     String    @unique // Stripe Checkout Session id (cs_test_...)
+  stripePaymentIntentId String?   @unique // pi_... ; refunds arrive keyed by this
+  checkoutUrl           String?
+  refundedAmount        Int       @default(0)
+  failureReason         String?
+  expiresAt             DateTime?
+  paidAt                DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
