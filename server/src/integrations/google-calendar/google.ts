@@ -105,6 +105,9 @@ export async function getConnection(workspaceId: string, userId: string) {
 
 /** Returns a valid access token, refreshing it automatically; marks the connection broken if revoked (I3.2). */
 export async function accessTokenFor(workspaceId: string, userId: string): Promise<string> {
+  // A server without the Google settings must fail clearly, never mark a working connection broken
+  // (the token encryption key is derived from these settings).
+  googleConfig();
   const conn = await getConnection(workspaceId, userId);
   if (!conn || conn.status === 'NOT_CONNECTED' || !conn.encryptedConfig) {
     throw new AppError('This employee has not connected Google Calendar, so they cannot be booked yet.', 409, 'CALENDAR_NOT_CONNECTED');
