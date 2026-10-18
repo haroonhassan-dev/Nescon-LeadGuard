@@ -20,6 +20,15 @@ function token(): string | null {
   return t && /^\d+:[\w-]{20,}$/.test(t) ? t : null;
 }
 
+/** For HTTP routes: show the provider's own error to the user instead of a generic 500 (I5.5). */
+async function telegramForRoute<T>(method: string, body: Record<string, unknown>): Promise<T> {
+  try {
+    return await telegram<T>(method, body);
+  } catch (err) {
+    throw new AppError(`Telegram refused the request: ${err instanceof Error ? err.message : 'unknown error'}`, 502, 'PROVIDER_ERROR');
+  }
+}
+
 async function telegram<T>(method: string, body: Record<string, unknown>): Promise<T> {
   const t = token();
   if (!t) throw new PermanentNotificationError('TELEGRAM_BOT_TOKEN is not configured on the server');
@@ -76,7 +85,7 @@ telegramRouter.post(
   requireWorkspaceContext,
   asyncHandler<ScopedRequest>(async (req, res) => {
     if (!token()) throw new AppError('Telegram is not set up on the server (TELEGRAM_BOT_TOKEN missing)', 503, 'INTEGRATION_NOT_CONFIGURED');
-    const updates = await telegram<Array<{ message?: { chat: { id: number; type: string; first_name?: string } } }>>('getUpdates', {
+    const updates = await telegramForRoute<Array<{ message?: { chat: { id: number; type: string; first_name?: string } } }>>('getUpdates', {
       allowed_updates: ['message'],
     });
     const chats = updates.map((u) => u.message?.chat).filter((c) => c && c.type === 'private');
@@ -85,7 +94,7 @@ telegramRouter.post(
       throw new AppError('Open the bot in Telegram, press Start (or send any message), then try again.', 409, 'TELEGRAM_CHAT_NOT_FOUND');
     }
     await prisma.membership.update({ where: { id: req.ctx.membershipId }, data: { telegramChatId: String(chat.id) } });
-    await telegram('sendMessage', { chat_id: chat.id, text: '✅ Linked. You will get Nescon-LeadGuard escalation alerts here.' });
+    await telegramForRoute('sendMessage', { chat_id: chat.id, text: '✅ Linked. You will get Nescon-LeadGuard escalation alerts here.' });
     ok(req, res, { linked: true, chatName: chat.first_name ?? null });
   })
 );
@@ -98,7 +107,7 @@ telegramRouter.post(
   asyncHandler<ScopedRequest>(async (req, res) => {
     const member = await prisma.membership.findUniqueOrThrow({ where: { id: req.ctx.membershipId } });
     if (!member.telegramChatId) throw new AppError('Link your Telegram first', 409, 'TELEGRAM_NOT_LINKED');
-    await telegram('sendMessage', { chat_id: member.telegramChatId, text: '🔔 Test alert from Nescon-LeadGuard' });
+    await telegramForRoute('sendMessage', { chat_id: member.telegramChatId, text: '🔔 Test alert from Nescon-LeadGuard' });
     ok(req, res, { sent: true });
   })
 );
