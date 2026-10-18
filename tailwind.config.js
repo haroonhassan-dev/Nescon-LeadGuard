@@ -24,8 +24,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'Menlo', 'Consolas', 'monospace'],
+        sans: ['"Times New Roman"', 'Times', 'serif'],
+        serif: ['"Times New Roman"', 'Times', 'serif'],
+        mono: ['"Times New Roman"', 'Times', 'serif'],
       },
     },
   },

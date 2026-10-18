@@ -45,7 +45,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-[#0D1112]/85 transition-opacity"
+        className="fixed inset-0 bg-[#FAF8F4]/85 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -56,19 +56,19 @@ export const Modal: React.FC<ModalProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
-          className={`relative transform overflow-hidden rounded-xl bg-[#171E1F] border border-[#242E30] text-left shadow-2xl transition-all w-full ${maxWidthClasses[maxWidth]} my-8`}
+          className={`relative transform overflow-hidden rounded-xl bg-[#FFFFFF] border border-[#E8E1D6] text-left shadow-2xl transition-all w-full ${maxWidthClasses[maxWidth]} my-8`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#242E30]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E1D6]">
             <div>
-              <h3 id="modal-title" className="text-base font-bold text-[#F5F7F2] tracking-tight">
+              <h3 id="modal-title" className="text-base font-bold text-[#2B2A27] tracking-tight">
                 {title}
               </h3>
-              {subtitle && <p className="text-xs text-[#8E9B9A] mt-0.5">{subtitle}</p>}
+              {subtitle && <p className="text-xs text-[#78716A] mt-0.5">{subtitle}</p>}
             </div>
             <button
               onClick={onClose}
-              className="text-[#8E9B9A] hover:text-[#F5F7F2] hover:bg-[#0D1112] p-1.5 rounded-lg border border-transparent hover:border-[#242E30] transition-colors"
+              className="text-[#78716A] hover:text-[#2B2A27] hover:bg-[#FAF8F4] p-1.5 rounded-lg border border-transparent hover:border-[#E8E1D6] transition-colors"
               aria-label="Close modal"
             >
               <X className="h-4 w-4" />

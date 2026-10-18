@@ -185,17 +185,17 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#242E30] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E1D6] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F7F2]">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#2B2A27]">
               Lead Command Center
             </h1>
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#B7F45B]/10 border border-[#B7F45B]/30 text-[#B7F45B] px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#4F7F6D]/10 border border-[#4F7F6D]/30 text-[#4F7F6D] px-2 py-0.5 rounded">
               SINGLE-OWNER ENFORCED
             </span>
           </div>
-          <p className="text-xs text-[#8E9B9A] mt-0.5">
+          <p className="text-xs text-[#78716A] mt-0.5">
             Real-time SLA deadline monitoring, automated routing, and crash-resilient escalation queue
           </p>
         </div>
@@ -204,7 +204,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           <button
             onClick={() => setIsCreateModalOpen(true)}
             disabled={!canCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] disabled:opacity-50 text-[#0D1112] font-semibold text-xs tracking-wide uppercase transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] disabled:opacity-50 text-white font-semibold text-xs tracking-wide uppercase transition-colors"
           >
             <Plus className="h-4 w-4" />
             Ingest New Lead
@@ -213,17 +213,17 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       </div>
 
       {/* Tabs: Inbox vs Recovery Queue */}
-      <div className="flex border-b border-[#242E30] gap-4 text-xs font-mono">
+      <div className="flex border-b border-[#E8E1D6] gap-4 text-xs font-mono">
         <button
           onClick={() => setActiveTab('all')}
           className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
             activeTab === 'all'
-              ? 'border-[#B7F45B] text-[#B7F45B]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
+              ? 'border-[#4F7F6D] text-[#4F7F6D]'
+              : 'border-transparent text-[#78716A] hover:text-[#2B2A27]'
           }`}
         >
           <span>All Active Leads</span>
-          <span className="px-1.5 py-0.2 rounded bg-[#171E1F] border border-[#242E30] text-[#F5F7F2]">
+          <span className="px-1.5 py-0.2 rounded bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27]">
             {leads.length}
           </span>
         </button>
@@ -232,13 +232,13 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           onClick={() => setActiveTab('recovery')}
           className={`pb-3 border-b-2 font-medium transition-colors flex items-center gap-2 ${
             activeTab === 'recovery'
-              ? 'border-[#FF5C5C] text-[#FF5C5C]'
-              : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'
+              ? 'border-[#B9524C] text-[#B9524C]'
+              : 'border-transparent text-[#78716A] hover:text-[#2B2A27]'
           }`}
         >
-          <Flame className="h-3.5 w-3.5 text-[#FF5C5C]" />
+          <Flame className="h-3.5 w-3.5 text-[#B9524C]" />
           <span>SLA Recovery Queue</span>
-          <span className="px-1.5 py-0.2 rounded bg-[#FF5C5C]/20 border border-[#FF5C5C]/40 text-[#FF5C5C] font-bold">
+          <span className="px-1.5 py-0.2 rounded bg-[#B9524C]/20 border border-[#B9524C]/40 text-[#B9524C] font-bold">
             {
               leads.filter(
                 (l) =>
@@ -261,16 +261,16 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
             placeholder="Search leads, customer name, email, company..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#171E1F] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+            className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
           />
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#8E9B9A]" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#78716A]" />
         </div>
 
         {/* Priority Filter */}
         <select
           value={selectedPriority}
           onChange={(e) => setSelectedPriority(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#171E1F] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+          className="px-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
         >
           <option value="ALL">All Priorities</option>
           <option value="CRITICAL">Critical Priority</option>
@@ -283,7 +283,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         <select
           value={selectedSource}
           onChange={(e) => setSelectedSource(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#171E1F] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+          className="px-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
         >
           <option value="ALL">All Ingress Sources</option>
           <option value="TWILIO_SMS">Twilio SMS</option>
@@ -297,7 +297,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#171E1F] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+          className="px-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
         >
           <option value="ALL">All Statuses</option>
           <option value="UNASSIGNED">Unassigned</option>
@@ -311,7 +311,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         <select
           value={selectedOwner}
           onChange={(e) => setSelectedOwner(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-[#171E1F] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+          className="px-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
         >
           <option value="ALL">All Owners</option>
           <option value="UNASSIGNED">Unassigned Only</option>
@@ -333,11 +333,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           onAction={() => setIsCreateModalOpen(true)}
         />
       ) : (
-        <div className="border border-[#242E30] bg-[#171E1F] rounded-xl overflow-hidden shadow-xl">
+        <div className="border border-[#E8E1D6] bg-[#FFFFFF] rounded-xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase tracking-wider">
+                <tr className="bg-[#FAF8F4] border-b border-[#E8E1D6] text-[#78716A] font-mono text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-4">Lead Details & Source</th>
                   <th className="py-3 px-4">Contact / Account</th>
                   <th className="py-3 px-4">Priority & Value</th>
@@ -346,7 +346,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#242E30]">
+              <tbody className="divide-y divide-[#E8E1D6]">
                 {filteredLeads.map((lead) => {
                   const owner = users.find((u) => u.id === lead.currentOwnerId);
                   const isOverdue =
@@ -357,24 +357,24 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                   return (
                     <tr
                       key={lead.id}
-                      className={`hover:bg-[#1F282A]/60 transition-colors ${
-                        isOverdue ? 'bg-[#FF5C5C]/5' : ''
+                      className={`hover:bg-[#F3EEE6]/60 transition-colors ${
+                        isOverdue ? 'bg-[#B9524C]/5' : ''
                       }`}
                     >
                       {/* Title & Source */}
                       <td className="py-3.5 px-4 max-w-sm">
                         <div
                           onClick={() => setSelectedLeadDetail(lead)}
-                          className="font-semibold text-sm text-[#F5F7F2] hover:text-[#B7F45B] cursor-pointer truncate"
+                          className="font-semibold text-sm text-[#2B2A27] hover:text-[#4F7F6D] cursor-pointer truncate"
                         >
                           {lead.title}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-[#0D1112] border border-[#242E30] text-[#8E9B9A]">
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-[#FAF8F4] border border-[#E8E1D6] text-[#78716A]">
                             {lead.source}
                           </span>
                           {lead.status === 'ESCALATED' && (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-[#FF5C5C]/20 text-[#FF5C5C] border border-[#FF5C5C]/40 font-bold">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-[#B9524C]/20 text-[#B9524C] border border-[#B9524C]/40 font-bold">
                               LEVEL {lead.escalationLevel} ESCALATED
                             </span>
                           )}
@@ -383,8 +383,8 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
                       {/* Contact / Org */}
                       <td className="py-3.5 px-4">
-                        <div className="font-medium text-[#F5F7F2]">{lead.contactName}</div>
-                        <div className="text-[11px] text-[#8E9B9A] flex items-center gap-1">
+                        <div className="font-medium text-[#2B2A27]">{lead.contactName}</div>
+                        <div className="text-[11px] text-[#78716A] flex items-center gap-1">
                           <Building2 className="h-3 w-3 shrink-0" />
                           <span className="truncate max-w-[140px]">{lead.companyName || 'Independent'}</span>
                         </div>
@@ -395,15 +395,15 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                         <span
                           className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
                             lead.priority === 'CRITICAL'
-                              ? 'bg-[#FF5C5C]/15 text-[#FF5C5C] border border-[#FF5C5C]/30'
+                              ? 'bg-[#B9524C]/15 text-[#B9524C] border border-[#B9524C]/30'
                               : lead.priority === 'HIGH'
-                              ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30'
-                              : 'bg-[#8E9B9A]/15 text-[#8E9B9A] border border-[#8E9B9A]/20'
+                              ? 'bg-[#B97F2E]/15 text-[#B97F2E] border border-[#B97F2E]/30'
+                              : 'bg-[#78716A]/15 text-[#78716A] border border-[#78716A]/20'
                           }`}
                         >
                           {lead.priority}
                         </span>
-                        <div className="font-mono text-xs text-[#F5F7F2] mt-1 font-semibold">
+                        <div className="font-mono text-xs text-[#2B2A27] mt-1 font-semibold">
                           ${(lead.estimatedValue || 0).toLocaleString()}
                         </div>
                       </td>
@@ -415,19 +415,19 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                             <img
                               src={owner.avatarUrl}
                               alt={owner.firstName}
-                              className="h-6 w-6 rounded-full object-cover border border-[#242E30]"
+                              className="h-6 w-6 rounded-full object-cover border border-[#E8E1D6]"
                             />
                             <div>
-                              <div className="font-medium text-[#F5F7F2] text-xs">
+                              <div className="font-medium text-[#2B2A27] text-xs">
                                 {owner.firstName} {owner.lastName}
                               </div>
-                              <div className="text-[10px] font-mono text-[#8E9B9A]">
+                              <div className="text-[10px] font-mono text-[#78716A]">
                                 {owner.role?.type}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#F5A623]">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#B97F2E]">
                             <UserX className="h-3.5 w-3.5" />
                             UNASSIGNED
                           </span>
@@ -449,7 +449,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                           {!lead.currentOwnerId && (
                             <button
                               onClick={() => handleClaim(lead)}
-                              className="px-2.5 py-1 rounded bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-[11px] font-mono uppercase tracking-wider"
+                              className="px-2.5 py-1 rounded bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-[11px] font-mono uppercase tracking-wider"
                               title="Claim single ownership"
                             >
                               Claim
@@ -460,7 +460,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                           {lead.currentOwnerId === user.id && !lead.acknowledgedAt && (
                             <button
                               onClick={() => handleAcknowledge(lead)}
-                              className="px-2.5 py-1 rounded bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-[11px] font-mono uppercase tracking-wider"
+                              className="px-2.5 py-1 rounded bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-[11px] font-mono uppercase tracking-wider"
                               title="Acknowledge lead to stop SLA escalation"
                             >
                               Acknowledge
@@ -474,7 +474,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                                 setReassignLeadTarget(lead);
                                 setReassignOwnerId(lead.currentOwnerId || '');
                               }}
-                              className="px-2.5 py-1 rounded bg-[#0D1112] hover:bg-[#1F282A] text-[#8E9B9A] hover:text-[#F5F7F2] border border-[#242E30] text-[11px] font-mono transition-colors"
+                              className="px-2.5 py-1 rounded bg-[#FAF8F4] hover:bg-[#F3EEE6] text-[#78716A] hover:text-[#2B2A27] border border-[#E8E1D6] text-[11px] font-mono transition-colors"
                               title="Transfer or Reassign to on-call agent"
                             >
                               Reassign
@@ -500,7 +500,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
               Service Request Title *
             </label>
             <input
@@ -509,13 +509,13 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               placeholder="e.g. Critical Chiller Leak at Terminal 4"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+              className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Contact Person Name *
               </label>
               <input
@@ -524,11 +524,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                 placeholder="e.g. Liam Gallagher"
                 value={newContactName}
                 onChange={(e) => setNewContactName(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Company / Facility
               </label>
               <input
@@ -536,14 +536,14 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                 placeholder="e.g. Logan Airport Facilities"
                 value={newCompanyName}
                 onChange={(e) => setNewCompanyName(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Email Address *
               </label>
               <input
@@ -552,11 +552,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                 placeholder="liam@airportops.com"
                 value={newContactEmail}
                 onChange={(e) => setNewContactEmail(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Phone Number (E.164)
               </label>
               <input
@@ -564,18 +564,18 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                 placeholder="+15552345678"
                 value={newContactPhone}
                 onChange={(e) => setNewContactPhone(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Source</label>
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">Source</label>
               <select
                 value={newSource}
                 onChange={(e) => setNewSource(e.target.value as LeadSource)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               >
                 <option value="WEBSITE_FORM">Website Form</option>
                 <option value="TWILIO_SMS">Twilio SMS</option>
@@ -585,11 +585,11 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Priority</label>
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">Priority</label>
               <select
                 value={newPriority}
                 onChange={(e) => setNewPriority(e.target.value as LeadPriority)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               >
                 <option value="CRITICAL">Critical</option>
                 <option value="HIGH">High</option>
@@ -598,20 +598,20 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Estimated Value ($)
               </label>
               <input
                 type="number"
                 value={newValue}
                 onChange={(e) => setNewValue(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
               Dispatch Notes / Technical Scope
             </label>
             <textarea
@@ -619,21 +619,21 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               placeholder="Immediate dispatch requested. Technician must possess OSHA certification."
               value={newNotes}
               onChange={(e) => setNewNotes(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+              className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
             />
           </div>
 
-          <div className="border-t border-[#242E30] pt-4 flex justify-end gap-3">
+          <div className="border-t border-[#E8E1D6] pt-4 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 rounded-lg bg-[#0D1112] hover:bg-[#1F282A] text-[#8E9B9A] text-xs border border-[#242E30]"
+              className="px-4 py-2 rounded-lg bg-[#FAF8F4] hover:bg-[#F3EEE6] text-[#78716A] text-xs border border-[#E8E1D6]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               <Plus className="h-4 w-4" />
               Ingest & Start SLA
@@ -650,9 +650,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         subtitle={`Select available on-call employee for "${reassignLeadTarget?.title}"`}
       >
         <form onSubmit={handleReassignSubmit} className="space-y-4">
-          <div className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] space-y-1 text-xs">
-            <div className="text-[#8E9B9A]">Current Owner:</div>
-            <div className="font-semibold text-[#F5F7F2]">
+          <div className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] space-y-1 text-xs">
+            <div className="text-[#78716A]">Current Owner:</div>
+            <div className="font-semibold text-[#2B2A27]">
               {(() => {
                 const cur = users.find((u) => u.id === reassignLeadTarget?.currentOwnerId);
                 return cur ? `${cur.firstName} ${cur.lastName}` : 'Unassigned';
@@ -661,7 +661,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
               New Assigned Employee *
             </label>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -676,20 +676,20 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
                     onClick={() => setReassignOwnerId(emp.id)}
                     className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between transition-colors ${
                       isSelected
-                        ? 'bg-[#B7F45B]/10 border-[#B7F45B] text-[#F5F7F2]'
-                        : 'bg-[#0D1112] border-[#242E30] text-[#8E9B9A] hover:border-[#B7F45B]/40'
+                        ? 'bg-[#4F7F6D]/10 border-[#4F7F6D] text-[#2B2A27]'
+                        : 'bg-[#FAF8F4] border-[#E8E1D6] text-[#78716A] hover:border-[#4F7F6D]/40'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <img src={emp.avatarUrl} alt={emp.firstName} className="h-6 w-6 rounded-full object-cover" />
                       <div>
-                        <div className="text-xs font-bold text-[#F5F7F2]">{emp.firstName} {emp.lastName}</div>
-                        <div className="text-[10px] font-mono text-[#8E9B9A]">
+                        <div className="text-xs font-bold text-[#2B2A27]">{emp.firstName} {emp.lastName}</div>
+                        <div className="text-[10px] font-mono text-[#78716A]">
                           {avail.status} &bull; Capacity: {avail.currentActiveLeadCount}/{avail.maxConcurrentActiveLeads} leads
                         </div>
                       </div>
                     </div>
-                    {isSelected && <CheckCircle2 className="h-4 w-4 text-[#B7F45B]" />}
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-[#4F7F6D]" />}
                   </div>
                 );
               })}
@@ -697,7 +697,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
               Reassignment Reason
             </label>
             <input
@@ -705,22 +705,22 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               required
               value={reassignReason}
               onChange={(e) => setReassignReason(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+              className="w-full px-3.5 py-2 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
             />
           </div>
 
-          <div className="border-t border-[#242E30] pt-4 flex justify-end gap-3">
+          <div className="border-t border-[#E8E1D6] pt-4 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setReassignLeadTarget(null)}
-              className="px-4 py-2 rounded-lg bg-[#0D1112] hover:bg-[#1F282A] text-[#8E9B9A] text-xs border border-[#242E30]"
+              className="px-4 py-2 rounded-lg bg-[#FAF8F4] hover:bg-[#F3EEE6] text-[#78716A] text-xs border border-[#E8E1D6]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!reassignOwnerId}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] disabled:opacity-50 text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] disabled:opacity-50 text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               Transfer Lead
             </button>
@@ -738,59 +738,59 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       >
         {selectedLeadDetail && (
           <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3 bg-[#0D1112] rounded-lg border border-[#242E30]">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-[#FAF8F4] rounded-lg border border-[#E8E1D6]">
               <div>
-                <span className="text-[#8E9B9A] font-mono text-[10px] uppercase">Contact:</span>
-                <div className="text-sm font-semibold text-[#F5F7F2]">{selectedLeadDetail.contactName}</div>
-                <div className="text-[#8E9B9A]">{selectedLeadDetail.contactEmail}</div>
+                <span className="text-[#78716A] font-mono text-[10px] uppercase">Contact:</span>
+                <div className="text-sm font-semibold text-[#2B2A27]">{selectedLeadDetail.contactName}</div>
+                <div className="text-[#78716A]">{selectedLeadDetail.contactEmail}</div>
                 {selectedLeadDetail.contactPhone && (
-                  <div className="text-[#8E9B9A]">{selectedLeadDetail.contactPhone}</div>
+                  <div className="text-[#78716A]">{selectedLeadDetail.contactPhone}</div>
                 )}
               </div>
               <div>
-                <span className="text-[#8E9B9A] font-mono text-[10px] uppercase">Company Account:</span>
-                <div className="text-sm font-semibold text-[#F5F7F2]">
+                <span className="text-[#78716A] font-mono text-[10px] uppercase">Company Account:</span>
+                <div className="text-sm font-semibold text-[#2B2A27]">
                   {selectedLeadDetail.companyName || 'Independent Client'}
                 </div>
-                <div className="text-[#B7F45B] font-mono mt-1 font-bold">
+                <div className="text-[#4F7F6D] font-mono mt-1 font-bold">
                   Estimated Value: ${(selectedLeadDetail.estimatedValue || 0).toLocaleString()}
                 </div>
               </div>
             </div>
 
-            <div className="border border-[#242E30] rounded-lg p-3 space-y-2">
-              <span className="text-[#8E9B9A] font-mono text-[10px] uppercase">SLA & Timing:</span>
+            <div className="border border-[#E8E1D6] rounded-lg p-3 space-y-2">
+              <span className="text-[#78716A] font-mono text-[10px] uppercase">SLA & Timing:</span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono">
                 <div>
-                  <span className="text-[#8E9B9A]">Created:</span>
-                  <div className="text-[#F5F7F2]">{new Date(selectedLeadDetail.createdAt).toLocaleTimeString()}</div>
+                  <span className="text-[#78716A]">Created:</span>
+                  <div className="text-[#2B2A27]">{new Date(selectedLeadDetail.createdAt).toLocaleTimeString()}</div>
                 </div>
                 <div>
-                  <span className="text-[#8E9B9A]">SLA Deadline:</span>
-                  <div className="text-[#F5F7F2]">
+                  <span className="text-[#78716A]">SLA Deadline:</span>
+                  <div className="text-[#2B2A27]">
                     {selectedLeadDetail.acknowledgementDeadline
                       ? new Date(selectedLeadDetail.acknowledgementDeadline).toLocaleTimeString()
                       : 'None'}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[#8E9B9A]">Status:</span>
-                  <div className="text-[#B7F45B] font-bold">{selectedLeadDetail.status}</div>
+                  <span className="text-[#78716A]">Status:</span>
+                  <div className="text-[#4F7F6D] font-bold">{selectedLeadDetail.status}</div>
                 </div>
               </div>
             </div>
 
             {selectedLeadDetail.notes && (
-              <div className="p-3 bg-[#0D1112] rounded-lg border border-[#242E30]">
-                <span className="text-[#8E9B9A] font-mono text-[10px] uppercase">Scope Notes & History:</span>
-                <p className="text-xs text-[#F5F7F2] mt-1 whitespace-pre-wrap">{selectedLeadDetail.notes}</p>
+              <div className="p-3 bg-[#FAF8F4] rounded-lg border border-[#E8E1D6]">
+                <span className="text-[#78716A] font-mono text-[10px] uppercase">Scope Notes & History:</span>
+                <p className="text-xs text-[#2B2A27] mt-1 whitespace-pre-wrap">{selectedLeadDetail.notes}</p>
               </div>
             )}
 
             <div className="pt-2 flex justify-end gap-2">
               <button
                 onClick={() => setSelectedLeadDetail(null)}
-                className="px-4 py-2 rounded-lg bg-[#0D1112] text-[#8E9B9A] hover:text-[#F5F7F2] border border-[#242E30]"
+                className="px-4 py-2 rounded-lg bg-[#FAF8F4] text-[#78716A] hover:text-[#2B2A27] border border-[#E8E1D6]"
               >
                 Close
               </button>

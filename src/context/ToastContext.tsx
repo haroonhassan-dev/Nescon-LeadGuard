@@ -41,34 +41,34 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => {
           const icons = {
-            success: <CheckCircle2 className="h-5 w-5 text-[#B7F45B] shrink-0" />,
-            error: <AlertCircle className="h-5 w-5 text-[#FF5C5C] shrink-0" />,
-            warning: <AlertTriangle className="h-5 w-5 text-[#F5A623] shrink-0" />,
-            info: <Info className="h-5 w-5 text-[#56CCF2] shrink-0" />,
+            success: <CheckCircle2 className="h-5 w-5 text-[#4F7F6D] shrink-0" />,
+            error: <AlertCircle className="h-5 w-5 text-[#B9524C] shrink-0" />,
+            warning: <AlertTriangle className="h-5 w-5 text-[#B97F2E] shrink-0" />,
+            info: <Info className="h-5 w-5 text-[#4A86A8] shrink-0" />,
           };
 
           const borderColors = {
-            success: 'border-[#B7F45B]/40',
-            error: 'border-[#FF5C5C]/40',
-            warning: 'border-[#F5A623]/40',
-            info: 'border-[#56CCF2]/40',
+            success: 'border-[#4F7F6D]/40',
+            error: 'border-[#B9524C]/40',
+            warning: 'border-[#B97F2E]/40',
+            info: 'border-[#4A86A8]/40',
           };
 
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto p-4 rounded-xl bg-[#171E1F] border ${borderColors[toast.type]} shadow-xl shadow-black/50 flex items-start gap-3 transition-all duration-300 animate-slide-up`}
+              className={`pointer-events-auto p-4 rounded-xl bg-[#FFFFFF] border ${borderColors[toast.type]} shadow-xl shadow-black/50 flex items-start gap-3 transition-all duration-300 animate-slide-up`}
             >
               {icons[toast.type]}
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-[#F5F7F2] tracking-tight">{toast.title}</h4>
+                <h4 className="text-sm font-semibold text-[#2B2A27] tracking-tight">{toast.title}</h4>
                 {toast.message && (
-                  <p className="text-xs text-[#8E9B9A] mt-0.5 leading-snug">{toast.message}</p>
+                  <p className="text-xs text-[#78716A] mt-0.5 leading-snug">{toast.message}</p>
                 )}
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-[#8E9B9A] hover:text-[#F5F7F2] p-1 rounded transition-colors"
+                className="text-[#78716A] hover:text-[#2B2A27] p-1 rounded transition-colors"
                 aria-label="Close notification"
               >
                 <X className="h-4 w-4" />

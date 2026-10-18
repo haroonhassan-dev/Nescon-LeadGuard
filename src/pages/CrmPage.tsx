@@ -26,10 +26,10 @@ interface CrmPageProps {
 
 type Tab = 'pipeline' | 'contacts' | 'companies' | 'setup' | 'lists';
 
-const card = 'bg-[#171E1F] border border-[#242E30] rounded-xl';
-const btn = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide disabled:opacity-50';
-const ghost = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D1112] text-[#8E9B9A] hover:text-[#F5F7F2] text-xs border border-[#242E30] disabled:opacity-50';
-const label = 'block text-xs font-mono text-[#8E9B9A] uppercase mb-1';
+const card = 'bg-[#FFFFFF] border border-[#E8E1D6] rounded-xl';
+const btn = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide disabled:opacity-50';
+const ghost = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FAF8F4] text-[#78716A] hover:text-[#2B2A27] text-xs border border-[#E8E1D6] disabled:opacity-50';
+const label = 'block text-xs font-mono text-[#78716A] uppercase mb-1';
 const money = (v: number | null, currency = 'USD') =>
   v === null ? '$•••,•••' : v.toLocaleString('en-US', { style: 'currency', currency, maximumFractionDigits: 2 });
 const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -308,7 +308,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
   const tabBtn = (id: Tab, icon: React.ReactNode, text: string) => (
     <button
       onClick={() => setTab(id)}
-      className={`pb-3 border-b-2 font-medium flex items-center gap-2 whitespace-nowrap ${tab === id ? 'border-[#B7F45B] text-[#B7F45B]' : 'border-transparent text-[#8E9B9A] hover:text-[#F5F7F2]'}`}
+      className={`pb-3 border-b-2 font-medium flex items-center gap-2 whitespace-nowrap ${tab === id ? 'border-[#4F7F6D] text-[#4F7F6D]' : 'border-transparent text-[#78716A] hover:text-[#2B2A27]'}`}
     >
       {icon}
       <span>{text}</span>
@@ -317,11 +317,11 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#242E30] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E1D6] pb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F7F2]">CRM & Pipelines</h1>
-          <p className="text-xs text-[#8E9B9A] mt-0.5">Deals, contacts, companies, custom fields and stage rules — all stored on the server</p>
-          {loadError && <p className="text-xs text-[#FF5C5C] mt-1">Could not load: {loadError}</p>}
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#2B2A27]">CRM & Pipelines</h1>
+          <p className="text-xs text-[#78716A] mt-0.5">Deals, contacts, companies, custom fields and stage rules — all stored on the server</p>
+          {loadError && <p className="text-xs text-[#B9524C] mt-1">Could not load: {loadError}</p>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {pipelines.length > 0 && (
@@ -343,7 +343,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
         </div>
       </div>
 
-      <div className="flex border-b border-[#242E30] gap-4 text-xs font-mono overflow-x-auto">
+      <div className="flex border-b border-[#E8E1D6] gap-4 text-xs font-mono overflow-x-auto">
         {tabBtn('pipeline', <Layers className="h-3.5 w-3.5" />, `Pipeline (${pipelineOpps.length})`)}
         {tabBtn('contacts', <Users className="h-3.5 w-3.5" />, `Contacts (${contacts.length})`)}
         {tabBtn('companies', <Building2 className="h-3.5 w-3.5" />, `Companies (${companies.length})`)}
@@ -351,12 +351,12 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
         {tabBtn('lists', <ListFilter className="h-3.5 w-3.5" />, `Saved Lists (${lists.length})`)}
       </div>
 
-      {loading && <div className="text-xs text-[#8E9B9A]">Loading from the server…</div>}
+      {loading && <div className="text-xs text-[#78716A]">Loading from the server…</div>}
 
       {/* ---------------- PIPELINE BOARD ---------------- */}
       {tab === 'pipeline' && pipeline && (
         <div className="space-y-3">
-          <div className="text-[11px] font-mono text-[#8E9B9A]">
+          <div className="text-[11px] font-mono text-[#78716A]">
             {canViewOpportunityValues ? 'Deal values visible for your role' : 'Deal values hidden for your role (enforced by the server)'}
           </div>
           <div className="flex gap-3.5 overflow-x-auto pb-2">
@@ -366,33 +366,33 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               const required = pipeline.customFields.filter((f) => stage.requiredFieldIds.includes(f.id));
               return (
                 <div key={stage.id} className={`${card} min-w-[230px] w-[230px] flex flex-col`}>
-                  <div className="p-3 border-b border-[#242E30] bg-[#0D1112] rounded-t-xl">
+                  <div className="p-3 border-b border-[#E8E1D6] bg-[#FAF8F4] rounded-t-xl">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#F5F7F2] truncate">{stage.name}</span>
-                      <span className="px-1.5 rounded text-[10px] font-mono bg-[#171E1F] border border-[#242E30] text-[#B7F45B]">{deals.length}</span>
+                      <span className="font-bold text-xs text-[#2B2A27] truncate">{stage.name}</span>
+                      <span className="px-1.5 rounded text-[10px] font-mono bg-[#FFFFFF] border border-[#E8E1D6] text-[#4F7F6D]">{deals.length}</span>
                     </div>
-                    <div className="mt-1 text-[10px] font-mono text-[#8E9B9A]">{canViewOpportunityValues ? money(total) : '$•••,•••'}</div>
+                    <div className="mt-1 text-[10px] font-mono text-[#78716A]">{canViewOpportunityValues ? money(total) : '$•••,•••'}</div>
                     {required.length > 0 && (
-                      <div className="mt-1 text-[10px] text-[#F5A623]">Requires: {required.map((f) => f.label).join(', ')}</div>
+                      <div className="mt-1 text-[10px] text-[#B97F2E]">Requires: {required.map((f) => f.label).join(', ')}</div>
                     )}
                   </div>
                   <div className="p-2.5 space-y-2.5 max-h-[520px] overflow-y-auto">
-                    {deals.length === 0 && <div className="text-[11px] font-mono text-[#8E9B9A]/60 text-center py-6">No deals</div>}
+                    {deals.length === 0 && <div className="text-[11px] font-mono text-[#78716A]/60 text-center py-6">No deals</div>}
                     {deals.map((o) => (
-                      <div key={o.id} className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B]/50 space-y-1.5">
-                        <button onClick={() => void openDeal(o.id)} className="text-left text-xs font-semibold text-[#F5F7F2] hover:text-[#B7F45B] leading-snug">
+                      <div key={o.id} className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] hover:border-[#4F7F6D]/50 space-y-1.5">
+                        <button onClick={() => void openDeal(o.id)} className="text-left text-xs font-semibold text-[#2B2A27] hover:text-[#4F7F6D] leading-snug">
                           {o.title}
                         </button>
-                        <div className="text-[11px] font-mono text-[#B7F45B] font-bold">{money(o.value, o.currency)}</div>
-                        {o.contact && <div className="text-[10px] text-[#8E9B9A] truncate">{o.contact.name}</div>}
-                        {o.assignedUser && <div className="text-[10px] text-[#8E9B9A] truncate">Owner: {o.assignedUser.name}</div>}
+                        <div className="text-[11px] font-mono text-[#4F7F6D] font-bold">{money(o.value, o.currency)}</div>
+                        {o.contact && <div className="text-[10px] text-[#78716A] truncate">{o.contact.name}</div>}
+                        {o.assignedUser && <div className="text-[10px] text-[#78716A] truncate">Owner: {o.assignedUser.name}</div>}
                         {o.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">{o.tags.map((t) => <span key={t} className="text-[9px] font-mono px-1.5 rounded bg-[#242E30] text-[#8E9B9A]">{t}</span>)}</div>
+                          <div className="flex flex-wrap gap-1">{o.tags.map((t) => <span key={t} className="text-[9px] font-mono px-1.5 rounded bg-[#E8E1D6] text-[#78716A]">{t}</span>)}</div>
                         )}
                         {hasPermission('opportunity:update') && (
-                          <div className="pt-1.5 border-t border-[#242E30] flex items-center justify-between gap-1">
-                            <span className="text-[10px] text-[#8E9B9A]">Stage:</span>
-                            <select aria-label={`Stage for ${o.title}`} value={o.stageId} onChange={(e) => void moveStage(o, e.target.value)} className="px-1.5 py-0.5 rounded bg-[#171E1F] border border-[#242E30] text-[10px] text-[#F5F7F2] max-w-[140px]">
+                          <div className="pt-1.5 border-t border-[#E8E1D6] flex items-center justify-between gap-1">
+                            <span className="text-[10px] text-[#78716A]">Stage:</span>
+                            <select aria-label={`Stage for ${o.title}`} value={o.stageId} onChange={(e) => void moveStage(o, e.target.value)} className="px-1.5 py-0.5 rounded bg-[#FFFFFF] border border-[#E8E1D6] text-[10px] text-[#2B2A27] max-w-[140px]">
                               {pipeline.stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                           </div>
@@ -413,7 +413,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#0D1112] border-b border-[#242E30] text-[#8E9B9A] font-mono text-[11px] uppercase">
+                <tr className="bg-[#FAF8F4] border-b border-[#E8E1D6] text-[#78716A] font-mono text-[11px] uppercase">
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Company</th>
                   <th className="py-3 px-4">Email / Phone</th>
@@ -421,15 +421,15 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
                   <th className="py-3 px-4 text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#242E30]">
-                {contacts.length === 0 && <tr><td colSpan={5} className="py-4 px-4 text-[#8E9B9A]">No contacts yet. Leads create contacts automatically.</td></tr>}
+              <tbody className="divide-y divide-[#E8E1D6]">
+                {contacts.length === 0 && <tr><td colSpan={5} className="py-4 px-4 text-[#78716A]">No contacts yet. Leads create contacts automatically.</td></tr>}
                 {contacts.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#1F282A]/50 cursor-pointer" onClick={() => void liveApi.contact(c.id).then(setContactDetail).catch((err) => showToast('error', 'Could not open', errorMessage(err)))}>
-                    <td className="py-3 px-4 font-semibold text-[#F5F7F2]">{c.firstName} {c.lastName}</td>
-                    <td className="py-3 px-4 text-[#8E9B9A]">{c.company?.name ?? '—'}</td>
-                    <td className="py-3 px-4 font-mono text-[#8E9B9A]"><div>{c.email ?? '—'}</div>{c.phone && <div className="text-[10px]">{c.phone}</div>}</td>
-                    <td className="py-3 px-4">{c.optedOut ? <span className="text-[10px] font-mono text-[#FF5C5C]">OPTED OUT</span> : <span className="text-[10px] font-mono text-[#B7F45B]">OK</span>}</td>
-                    <td className="py-3 px-4 text-right"><span className="text-xs font-mono text-[#B7F45B] inline-flex items-center gap-1">Open <ChevronRight className="h-3 w-3" /></span></td>
+                  <tr key={c.id} className="hover:bg-[#F3EEE6]/50 cursor-pointer" onClick={() => void liveApi.contact(c.id).then(setContactDetail).catch((err) => showToast('error', 'Could not open', errorMessage(err)))}>
+                    <td className="py-3 px-4 font-semibold text-[#2B2A27]">{c.firstName} {c.lastName}</td>
+                    <td className="py-3 px-4 text-[#78716A]">{c.company?.name ?? '—'}</td>
+                    <td className="py-3 px-4 font-mono text-[#78716A]"><div>{c.email ?? '—'}</div>{c.phone && <div className="text-[10px]">{c.phone}</div>}</td>
+                    <td className="py-3 px-4">{c.optedOut ? <span className="text-[10px] font-mono text-[#B9524C]">OPTED OUT</span> : <span className="text-[10px] font-mono text-[#4F7F6D]">OK</span>}</td>
+                    <td className="py-3 px-4 text-right"><span className="text-xs font-mono text-[#4F7F6D] inline-flex items-center gap-1">Open <ChevronRight className="h-3 w-3" /></span></td>
                   </tr>
                 ))}
               </tbody>
@@ -441,12 +441,12 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
       {/* ---------------- COMPANIES ---------------- */}
       {tab === 'companies' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {companies.length === 0 && <div className="text-xs text-[#8E9B9A]">No companies yet.</div>}
+          {companies.length === 0 && <div className="text-xs text-[#78716A]">No companies yet.</div>}
           {companies.map((co) => (
             <div key={co.id} className={`${card} p-5 space-y-2`}>
-              <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[#B7F45B]" /><h3 className="text-sm font-bold text-[#F5F7F2]">{co.name}</h3></div>
-              <div className="text-xs text-[#8E9B9A]">{co.domain ?? 'No domain'}</div>
-              <div className="text-[11px] font-mono text-[#8E9B9A]">{co._count?.contacts ?? 0} contacts · {co._count?.opportunities ?? 0} deals</div>
+              <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[#4F7F6D]" /><h3 className="text-sm font-bold text-[#2B2A27]">{co.name}</h3></div>
+              <div className="text-xs text-[#78716A]">{co.domain ?? 'No domain'}</div>
+              <div className="text-[11px] font-mono text-[#78716A]">{co._count?.contacts ?? 0} contacts · {co._count?.opportunities ?? 0} deals</div>
             </div>
           ))}
         </div>
@@ -458,38 +458,38 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
           <div className={`${card} p-5 space-y-4`}>
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="text-base font-bold text-[#F5F7F2]">Stages of “{pipeline.name}”</h3>
-                <p className="text-xs text-[#8E9B9A]">Add, rename, reorder and delete. Tick the fields a deal must have to enter a stage.</p>
+                <h3 className="text-base font-bold text-[#2B2A27]">Stages of “{pipeline.name}”</h3>
+                <p className="text-xs text-[#78716A]">Add, rename, reorder and delete. Tick the fields a deal must have to enter a stage.</p>
               </div>
             </div>
-            {!hasPermission('pipeline:manage') && <div className="text-xs text-[#F5A623]">Your role can view but not change stages.</div>}
+            {!hasPermission('pipeline:manage') && <div className="text-xs text-[#B97F2E]">Your role can view but not change stages.</div>}
             <div className="space-y-2.5">
               {pipeline.stages.map((s, i) => (
-                <div key={s.id} className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] space-y-2">
+                <div key={s.id} className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#8E9B9A] w-5">{i + 1}.</span>
+                    <span className="text-[10px] font-mono text-[#78716A] w-5">{i + 1}.</span>
                     {renaming?.id === s.id ? (
                       <>
                         <input aria-label="Stage name" value={renaming.name} onChange={(e) => setRenaming({ ...renaming, name: e.target.value })} className={inputCls} />
                         <button className={ghost} disabled={busy} onClick={() => { const r = renaming; setRenaming(null); void run(() => liveApi.updateStage(r.id, { name: r.name }), 'Stage renamed'); }}>Save</button>
                       </>
                     ) : (
-                      <span className="flex-1 text-sm font-semibold text-[#F5F7F2]">{s.name}{s.isWonStage && ' (won)'}{s.isLostStage && ' (lost)'}</span>
+                      <span className="flex-1 text-sm font-semibold text-[#2B2A27]">{s.name}{s.isWonStage && ' (won)'}{s.isLostStage && ' (lost)'}</span>
                     )}
                     {hasPermission('pipeline:manage') && renaming?.id !== s.id && (
                       <div className="flex items-center gap-1">
                         <button aria-label="Move up" className={ghost} disabled={busy || i === 0} onClick={() => moveStageOrder(i, -1)}><ChevronUp className="h-3.5 w-3.5" /></button>
                         <button aria-label="Move down" className={ghost} disabled={busy || i === pipeline.stages.length - 1} onClick={() => moveStageOrder(i, 1)}><ChevronDown className="h-3.5 w-3.5" /></button>
                         <button className={ghost} onClick={() => setRenaming({ id: s.id, name: s.name })}>Rename</button>
-                        <button aria-label="Delete stage" className={ghost} onClick={() => setDeleting({ id: s.id, name: s.name, moveTo: pipeline.stages.find((x) => x.id !== s.id)?.id ?? '' })}><Trash2 className="h-3.5 w-3.5 text-[#FF5C5C]" /></button>
+                        <button aria-label="Delete stage" className={ghost} onClick={() => setDeleting({ id: s.id, name: s.name, moveTo: pipeline.stages.find((x) => x.id !== s.id)?.id ?? '' })}><Trash2 className="h-3.5 w-3.5 text-[#B9524C]" /></button>
                       </div>
                     )}
                   </div>
                   {pipeline.customFields.length > 0 && (
                     <div className="flex flex-wrap gap-2 pl-7">
                       {pipeline.customFields.map((f) => (
-                        <label key={f.id} className="flex items-center gap-1 text-[11px] text-[#8E9B9A] cursor-pointer">
-                          <input type="checkbox" disabled={!hasPermission('pipeline:manage') || busy} checked={s.requiredFieldIds.includes(f.id)} onChange={() => toggleRequired(s.id, s.requiredFieldIds, f.id)} className="accent-[#B7F45B]" />
+                        <label key={f.id} className="flex items-center gap-1 text-[11px] text-[#78716A] cursor-pointer">
+                          <input type="checkbox" disabled={!hasPermission('pipeline:manage') || busy} checked={s.requiredFieldIds.includes(f.id)} onChange={() => toggleRequired(s.id, s.requiredFieldIds, f.id)} className="accent-[#4F7F6D]" />
                           requires {f.label}
                         </label>
                       ))}
@@ -505,7 +505,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               </div>
             )}
             {hasPermission('pipeline:manage') && (
-              <div className="pt-3 border-t border-[#242E30] flex gap-2">
+              <div className="pt-3 border-t border-[#E8E1D6] flex gap-2">
                 <input aria-label="New pipeline name" placeholder="Create another pipeline (e.g. Maintenance)" value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} className={inputCls} />
                 <button className={ghost} disabled={!newPipelineName.trim() || busy} onClick={() => { const n = newPipelineName; setNewPipelineName(''); void run(() => liveApi.createPipeline(n, ['New', 'In progress', 'Won', 'Lost']), 'Pipeline created'); }}>
                   <Plus className="h-3.5 w-3.5" /> Pipeline
@@ -517,25 +517,25 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
           <div className={`${card} p-5 space-y-4`}>
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="text-base font-bold text-[#F5F7F2]">Custom fields</h3>
-                <p className="text-xs text-[#8E9B9A]">Deal fields belong to this pipeline; contact fields are shared by all pipelines.</p>
+                <h3 className="text-base font-bold text-[#2B2A27]">Custom fields</h3>
+                <p className="text-xs text-[#78716A]">Deal fields belong to this pipeline; contact fields are shared by all pipelines.</p>
               </div>
               {hasPermission('field:manage') && (
                 <button className={btn} onClick={() => setFieldForm({ ...fieldForm, open: true })}><Plus className="h-4 w-4" /> Field</button>
               )}
             </div>
             {[...pipeline.customFields.map((f) => ({ f, scope: `Deals · ${pipeline.name}` })), ...contactFields.map((f) => ({ f, scope: 'Contacts · all pipelines' }))].map(({ f, scope }) => (
-              <div key={f.id} className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] flex items-center justify-between gap-2">
+              <div key={f.id} className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-[#F5F7F2]">{f.label}</div>
-                  <div className="text-[10px] font-mono text-[#8E9B9A]">{f.type}{f.options.length ? ` · ${f.options.join(' / ')}` : ''} · {scope}</div>
+                  <div className="text-sm font-semibold text-[#2B2A27]">{f.label}</div>
+                  <div className="text-[10px] font-mono text-[#78716A]">{f.type}{f.options.length ? ` · ${f.options.join(' / ')}` : ''} · {scope}</div>
                 </div>
                 {hasPermission('field:manage') && (
-                  <button aria-label={`Archive ${f.label}`} className={ghost} disabled={busy} onClick={() => void run(() => liveApi.archiveField(f.id), 'Field archived (stored values kept)')}><Trash2 className="h-3.5 w-3.5 text-[#FF5C5C]" /></button>
+                  <button aria-label={`Archive ${f.label}`} className={ghost} disabled={busy} onClick={() => void run(() => liveApi.archiveField(f.id), 'Field archived (stored values kept)')}><Trash2 className="h-3.5 w-3.5 text-[#B9524C]" /></button>
                 )}
               </div>
             ))}
-            {pipeline.customFields.length === 0 && contactFields.length === 0 && <div className="text-xs text-[#8E9B9A]">No custom fields yet.</div>}
+            {pipeline.customFields.length === 0 && contactFields.length === 0 && <div className="text-xs text-[#78716A]">No custom fields yet.</div>}
           </div>
         </div>
       )}
@@ -544,8 +544,8 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
       {tab === 'lists' && pipeline && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className={`${card} p-5 space-y-3`}>
-            <h3 className="text-base font-bold text-[#F5F7F2]">Build a filter</h3>
-            <p className="text-xs text-[#8E9B9A]">Combine criteria, preview, then save. A saved list stores the criteria, so it updates as deals change.</p>
+            <h3 className="text-base font-bold text-[#2B2A27]">Build a filter</h3>
+            <p className="text-xs text-[#78716A]">Combine criteria, preview, then save. A saved list stores the criteria, so it updates as deals change.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className={label} htmlFor="flt-stage">Stage</label>
                 <select id="flt-stage" value={filters.stageId} onChange={(e) => setFilters({ ...filters, stageId: e.target.value })} className={inputCls}>
@@ -572,29 +572,29 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
                   <input id="flt-val" value={filters.fieldValue} onChange={(e) => setFilters({ ...filters, fieldValue: e.target.value })} className={inputCls} /></div>
               </div>
             </div>
-            <div className="text-[11px] font-mono text-[#8E9B9A]">{criteriaCount(buildFilters())} criteria selected</div>
+            <div className="text-[11px] font-mono text-[#78716A]">{criteriaCount(buildFilters())} criteria selected</div>
             <div className="flex gap-2 flex-wrap">
               <button className={ghost} onClick={() => void runPreview()}>Preview</button>
               <input aria-label="List name" placeholder="List name" value={listName} onChange={(e) => setListName(e.target.value)} className={`${inputCls} flex-1 min-w-[140px]`} />
               <button className={btn} disabled={!listName.trim() || busy} onClick={() => { const n = listName; setListName(''); void run(() => liveApi.createList(n, buildFilters()), 'List saved'); }}>Save list</button>
             </div>
             {preview && (
-              <div className="space-y-1.5 pt-2 border-t border-[#242E30]">
-                <div className="text-xs text-[#8E9B9A]">{preview.length} matching deal(s)</div>
-                {preview.map((o) => <div key={o.id} className="text-xs text-[#F5F7F2]">• {o.title} <span className="text-[#8E9B9A]">({stageName(o.stageId)})</span></div>)}
+              <div className="space-y-1.5 pt-2 border-t border-[#E8E1D6]">
+                <div className="text-xs text-[#78716A]">{preview.length} matching deal(s)</div>
+                {preview.map((o) => <div key={o.id} className="text-xs text-[#2B2A27]">• {o.title} <span className="text-[#78716A]">({stageName(o.stageId)})</span></div>)}
               </div>
             )}
           </div>
           <div className={`${card} p-5 space-y-3`}>
-            <h3 className="text-base font-bold text-[#F5F7F2]">Saved lists</h3>
-            {lists.length === 0 && <div className="text-xs text-[#8E9B9A]">No saved lists yet.</div>}
+            <h3 className="text-base font-bold text-[#2B2A27]">Saved lists</h3>
+            {lists.length === 0 && <div className="text-xs text-[#78716A]">No saved lists yet.</div>}
             {lists.map((l) => (
-              <div key={l.id} className="p-3 rounded-lg bg-[#0D1112] border border-[#242E30] flex items-center justify-between gap-2">
+              <div key={l.id} className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] flex items-center justify-between gap-2">
                 <button className="text-left" onClick={() => void liveApi.listItems(l.id).then((r) => setOpenList({ name: l.name, items: r.items })).catch((err) => showToast('error', 'Could not open list', errorMessage(err)))}>
-                  <div className="text-sm font-semibold text-[#F5F7F2] hover:text-[#B7F45B]">{l.name}</div>
-                  <div className="text-[10px] font-mono text-[#8E9B9A]">{l.count ?? '—'} matching now · {criteriaCount(l.filters)} criteria</div>
+                  <div className="text-sm font-semibold text-[#2B2A27] hover:text-[#4F7F6D]">{l.name}</div>
+                  <div className="text-[10px] font-mono text-[#78716A]">{l.count ?? '—'} matching now · {criteriaCount(l.filters)} criteria</div>
                 </button>
-                <button aria-label={`Delete ${l.name}`} className={ghost} onClick={() => void run(() => liveApi.deleteList(l.id), 'List deleted')}><Trash2 className="h-3.5 w-3.5 text-[#FF5C5C]" /></button>
+                <button aria-label={`Delete ${l.name}`} className={ghost} onClick={() => void run(() => liveApi.deleteList(l.id), 'List deleted')}><Trash2 className="h-3.5 w-3.5 text-[#B9524C]" /></button>
               </div>
             ))}
           </div>
@@ -606,8 +606,8 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
         {detail && (
           <div className="space-y-5 text-xs">
             <div className="space-y-3">
-              <div className="text-[11px] font-mono text-[#8E9B9A] uppercase">Fields ({fieldsOf(detail.pipelineId).length})</div>
-              {detailFields.length === 0 && <div className="text-[#8E9B9A]">This pipeline has no custom fields. Add some under “Fields & Stages”.</div>}
+              <div className="text-[11px] font-mono text-[#78716A] uppercase">Fields ({fieldsOf(detail.pipelineId).length})</div>
+              {detailFields.length === 0 && <div className="text-[#78716A]">This pipeline has no custom fields. Add some under “Fields & Stages”.</div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {detailFields.map((f) => (
                   <FieldInput key={f.id} field={f} value={draftValues[f.key]} onChange={(v) => setDraftValues({ ...draftValues, [f.key]: v })}
@@ -619,7 +619,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               {hasPermission('opportunity:update') && (
                 <div className="flex flex-wrap items-center gap-2">
                   <button className={btn} disabled={busy} onClick={() => void saveDeal()}>Save fields</button>
-                  <span className="text-[#8E9B9A]">or save and move to</span>
+                  <span className="text-[#78716A]">or save and move to</span>
                   {detail.stages.filter((s) => s.id !== detail.stageId).map((s) => (
                     <button key={s.id} className={ghost} disabled={busy} onClick={() => void saveDeal(s.id)}>
                       {s.name}{s.requiredFields.length ? ` (needs ${s.requiredFields.length})` : ''}
@@ -629,13 +629,13 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               )}
             </div>
 
-            <div className="border border-[#242E30] rounded-lg p-3 space-y-2">
-              <div className="text-[11px] font-mono text-[#8E9B9A] uppercase flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-[#B7F45B]" /> Payments (Stripe test mode)</div>
-              {detail.payments.length === 0 && <div className="text-[#8E9B9A]">No payment requests yet.</div>}
+            <div className="border border-[#E8E1D6] rounded-lg p-3 space-y-2">
+              <div className="text-[11px] font-mono text-[#78716A] uppercase flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-[#4F7F6D]" /> Payments (Stripe test mode)</div>
+              {detail.payments.length === 0 && <div className="text-[#78716A]">No payment requests yet.</div>}
               {detail.payments.map((p) => (
-                <div key={p.id} className="p-2 rounded bg-[#0D1112] flex items-center justify-between gap-2 font-mono text-[11px]">
-                  <span className="text-[#F5F7F2]">{p.amount === null ? '$•••' : money(p.amount / 100, p.currency.toUpperCase())}{p.refundedAmount ? ` (refunded ${money((p.refundedAmount ?? 0) / 100, p.currency.toUpperCase())})` : ''}</span>
-                  <span className={p.status === 'PAID' ? 'text-[#B7F45B]' : p.status === 'PENDING' ? 'text-[#F5A623]' : 'text-[#FF5C5C]'}>{p.status}{p.failureReason ? ` · ${p.failureReason}` : ''}</span>
+                <div key={p.id} className="p-2 rounded bg-[#FAF8F4] flex items-center justify-between gap-2 font-mono text-[11px]">
+                  <span className="text-[#2B2A27]">{p.amount === null ? '$•••' : money(p.amount / 100, p.currency.toUpperCase())}{p.refundedAmount ? ` (refunded ${money((p.refundedAmount ?? 0) / 100, p.currency.toUpperCase())})` : ''}</span>
+                  <span className={p.status === 'PAID' ? 'text-[#4F7F6D]' : p.status === 'PENDING' ? 'text-[#B97F2E]' : 'text-[#B9524C]'}>{p.status}{p.failureReason ? ` · ${p.failureReason}` : ''}</span>
                 </div>
               ))}
               {hasPermission('payment:create') && (
@@ -646,20 +646,20 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
                 </div>
               )}
               {payLink && (
-                <div className="p-2 rounded bg-[#0D1112] border border-[#B7F45B]/30 space-y-1">
-                  <div className="text-[#8E9B9A]">Send this link to the customer (test card 4242 4242 4242 4242):</div>
+                <div className="p-2 rounded bg-[#FAF8F4] border border-[#4F7F6D]/30 space-y-1">
+                  <div className="text-[#78716A]">Send this link to the customer (test card 4242 4242 4242 4242):</div>
                   <div className="flex items-center gap-2">
-                    <a href={payLink} target="_blank" rel="noreferrer" className="text-[#B7F45B] underline truncate">{payLink}</a>
+                    <a href={payLink} target="_blank" rel="noreferrer" className="text-[#4F7F6D] underline truncate">{payLink}</a>
                     <button aria-label="Copy link" className={ghost} onClick={() => void navigator.clipboard.writeText(payLink).then(() => showToast('success', 'Copied', 'Payment link copied'))}><Copy className="h-3.5 w-3.5" /></button>
                   </div>
-                  <div className="text-[10px] text-[#8E9B9A]">The status turns PAID by itself when Stripe confirms the payment.</div>
+                  <div className="text-[10px] text-[#78716A]">The status turns PAID by itself when Stripe confirms the payment.</div>
                 </div>
               )}
             </div>
 
             {hasPermission('appointment:create') && (
-              <div className="border border-[#242E30] rounded-lg p-3 space-y-2">
-                <div className="text-[11px] font-mono text-[#8E9B9A] uppercase flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-[#B7F45B]" /> Book appointment (your Google Calendar)</div>
+              <div className="border border-[#E8E1D6] rounded-lg p-3 space-y-2">
+                <div className="text-[11px] font-mono text-[#78716A] uppercase flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-[#4F7F6D]" /> Book appointment (your Google Calendar)</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div><label className={label} htmlFor="ap-title">Title</label><input id="ap-title" value={apptTitle} onChange={(e) => setApptTitle(e.target.value)} className={inputCls} /></div>
                   <div><label className={label} htmlFor="ap-start">Start</label><input id="ap-start" type="datetime-local" value={apptStart} onChange={(e) => setApptStart(e.target.value)} className={inputCls} /></div>
@@ -667,15 +667,15 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
                   <div><label className={label} htmlFor="ap-tz">Time zone</label><input id="ap-tz" value={apptZone} onChange={(e) => setApptZone(e.target.value)} className={inputCls} /></div>
                 </div>
                 <button className={btn} disabled={busy || !apptStart} onClick={() => void bookAppointment()}>Book</button>
-                <div className="text-[10px] text-[#8E9B9A]">Clashes with your calendar are refused with the busy times. Connect Google under Integrations first.</div>
+                <div className="text-[10px] text-[#78716A]">Clashes with your calendar are refused with the busy times. Connect Google under Integrations first.</div>
               </div>
             )}
 
             {detail.history.length > 0 && (
-              <div className="border border-[#242E30] rounded-lg p-3 space-y-1.5">
-                <div className="text-[11px] font-mono text-[#8E9B9A] uppercase">History</div>
+              <div className="border border-[#E8E1D6] rounded-lg p-3 space-y-1.5">
+                <div className="text-[11px] font-mono text-[#78716A] uppercase">History</div>
                 {detail.history.map((h, i) => (
-                  <div key={i} className="text-[11px] text-[#8E9B9A]"><span className="font-mono">{new Date(h.at).toLocaleString()}</span> · <span className="text-[#F5F7F2]">{h.action}</span> by {h.actor}</div>
+                  <div key={i} className="text-[11px] text-[#78716A]"><span className="font-mono">{new Date(h.at).toLocaleString()}</span> · <span className="text-[#2B2A27]">{h.action}</span> by {h.actor}</div>
                 ))}
               </div>
             )}
@@ -698,7 +698,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
           {fieldsOf(pipeline?.id).map((f) => (
             <FieldInput key={f.id} field={f} value={ndValues[f.key]} onChange={(v) => setNdValues({ ...ndValues, [f.key]: v })} />
           ))}
-          <div className="border-t border-[#242E30] pt-3 flex justify-end gap-2">
+          <div className="border-t border-[#E8E1D6] pt-3 flex justify-end gap-2">
             <button type="button" className={ghost} onClick={() => setNewDealOpen(false)}>Cancel</button>
             <button type="submit" className={btn} disabled={busy}>{busy ? 'Saving…' : 'Create deal'}</button>
           </div>
@@ -730,7 +730,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
           {fieldForm.type === 'DROPDOWN' && (
             <div><label className={label} htmlFor="ff-opts">Options (comma separated, at least 2)</label><input id="ff-opts" required value={fieldForm.options} onChange={(e) => setFieldForm({ ...fieldForm, options: e.target.value })} className={inputCls} placeholder="Flat, Sloped, Metal" /></div>
           )}
-          <div className="border-t border-[#242E30] pt-3 flex justify-end gap-2">
+          <div className="border-t border-[#E8E1D6] pt-3 flex justify-end gap-2">
             <button type="button" className={ghost} onClick={() => setFieldForm({ ...fieldForm, open: false })}>Cancel</button>
             <button type="submit" className={btn}>Create field</button>
           </div>
@@ -746,7 +746,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               </select></div>
             <div className="flex justify-end gap-2">
               <button className={ghost} onClick={() => setDeleting(null)}>Cancel</button>
-              <button className="px-4 py-2 rounded-lg bg-[#FF5C5C] text-[#0D1112] font-semibold text-xs uppercase" onClick={() => { const d = deleting; setDeleting(null); void run(() => liveApi.deleteStage(d.id, d.moveTo), 'Stage deleted'); }}>Delete stage</button>
+              <button className="px-4 py-2 rounded-lg bg-[#B9524C] text-white font-semibold text-xs uppercase" onClick={() => { const d = deleting; setDeleting(null); void run(() => liveApi.deleteStage(d.id, d.moveTo), 'Stage deleted'); }}>Delete stage</button>
             </div>
           </div>
         )}
@@ -769,8 +769,8 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
             <select id="nc-co" value={newContact.companyId} onChange={(e) => setNewContact({ ...newContact, companyId: e.target.value })} className={inputCls}>
               <option value="">None</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select></div>
-          <div className="text-[10px] text-[#8E9B9A]">Email or phone is required.</div>
-          <div className="border-t border-[#242E30] pt-3 flex justify-end gap-2">
+          <div className="text-[10px] text-[#78716A]">Email or phone is required.</div>
+          <div className="border-t border-[#E8E1D6] pt-3 flex justify-end gap-2">
             <button type="button" className={ghost} onClick={() => setNewContact({ ...newContact, open: false })}>Cancel</button>
             <button type="submit" className={btn}>Save contact</button>
           </div>
@@ -786,7 +786,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
         }}>
           <div><label className={label} htmlFor="nco-name">Name *</label><input id="nco-name" required value={newCompany.name} onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })} className={inputCls} /></div>
           <div><label className={label} htmlFor="nco-dom">Domain</label><input id="nco-dom" value={newCompany.domain} onChange={(e) => setNewCompany({ ...newCompany, domain: e.target.value })} className={inputCls} /></div>
-          <div className="border-t border-[#242E30] pt-3 flex justify-end gap-2">
+          <div className="border-t border-[#E8E1D6] pt-3 flex justify-end gap-2">
             <button type="button" className={ghost} onClick={() => setNewCompany({ ...newCompany, open: false })}>Cancel</button>
             <button type="submit" className={btn}>Save company</button>
           </div>
@@ -795,18 +795,18 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
 
       <Modal isOpen={!!openList} onClose={() => setOpenList(null)} title={openList?.name ?? ''} subtitle="Evaluated now from the saved criteria">
         <div className="space-y-1.5 text-xs">
-          {openList?.items.length === 0 && <div className="text-[#8E9B9A]">No deals match right now.</div>}
-          {openList?.items.map((o) => <div key={o.id} className="text-[#F5F7F2]">• {o.title} <span className="text-[#8E9B9A]">({o.stage?.name})</span></div>)}
+          {openList?.items.length === 0 && <div className="text-[#78716A]">No deals match right now.</div>}
+          {openList?.items.map((o) => <div key={o.id} className="text-[#2B2A27]">• {o.title} <span className="text-[#78716A]">({o.stage?.name})</span></div>)}
         </div>
       </Modal>
 
       <Modal isOpen={!!contactDetail} onClose={() => setContactDetail(null)} title={contactDetail ? `${contactDetail.contact.firstName} ${contactDetail.contact.lastName}` : ''} subtitle={contactDetail ? `Assigned employee: ${contactDetail.assignedEmployee?.name ?? '—'}` : ''} maxWidth="xl">
         {contactDetail && (
           <div className="space-y-3 text-xs">
-            <div className="grid grid-cols-2 gap-3 p-3 bg-[#0D1112] rounded-lg border border-[#242E30]">
-              <div><div className="text-[10px] font-mono text-[#8E9B9A] uppercase">Email / phone</div><div className="text-[#F5F7F2]">{contactDetail.contact.email ?? '—'}</div><div className="text-[#8E9B9A]">{contactDetail.contact.phone ?? ''}</div></div>
-              <div><div className="text-[10px] font-mono text-[#8E9B9A] uppercase">Company</div><div className="text-[#F5F7F2]">{contactDetail.contact.company?.name ?? '—'}</div>
-                <div className={contactDetail.contact.optedOut ? 'text-[#FF5C5C]' : 'text-[#B7F45B]'}>{contactDetail.contact.optedOut ? 'Opted out of messages' : 'Can be messaged'}</div></div>
+            <div className="grid grid-cols-2 gap-3 p-3 bg-[#FAF8F4] rounded-lg border border-[#E8E1D6]">
+              <div><div className="text-[10px] font-mono text-[#78716A] uppercase">Email / phone</div><div className="text-[#2B2A27]">{contactDetail.contact.email ?? '—'}</div><div className="text-[#78716A]">{contactDetail.contact.phone ?? ''}</div></div>
+              <div><div className="text-[10px] font-mono text-[#78716A] uppercase">Company</div><div className="text-[#2B2A27]">{contactDetail.contact.company?.name ?? '—'}</div>
+                <div className={contactDetail.contact.optedOut ? 'text-[#B9524C]' : 'text-[#4F7F6D]'}>{contactDetail.contact.optedOut ? 'Opted out of messages' : 'Can be messaged'}</div></div>
             </div>
             {[
               { title: `Deals (${contactDetail.opportunities.length})`, rows: contactDetail.opportunities.map((o) => `${o.title} · ${o.stage?.name ?? ''} · ${money(o.value, o.currency)}`) },
@@ -816,9 +816,9 @@ export const CrmPage: React.FC<CrmPageProps> = ({ users }) => {
               { title: `Appointments (${contactDetail.appointments.length})`, rows: contactDetail.appointments.map((a) => `${a.title} · ${new Date(a.startTime).toLocaleString()} · ${a.status}`) },
               { title: `History (${contactDetail.activity.length})`, rows: contactDetail.activity.map((a) => `${new Date(a.createdAt).toLocaleString()} · ${a.kind}${a.body ? ` · ${a.body}` : ''}`) },
             ].map((sec) => (
-              <div key={sec.title} className="border border-[#242E30] rounded-lg p-3 space-y-1">
-                <div className="text-[10px] font-mono text-[#8E9B9A] uppercase">{sec.title}</div>
-                {sec.rows.length === 0 ? <div className="text-[#8E9B9A]">None</div> : sec.rows.map((r, i) => <div key={i} className="text-[#F5F7F2]">{r}</div>)}
+              <div key={sec.title} className="border border-[#E8E1D6] rounded-lg p-3 space-y-1">
+                <div className="text-[10px] font-mono text-[#78716A] uppercase">{sec.title}</div>
+                {sec.rows.length === 0 ? <div className="text-[#78716A]">None</div> : sec.rows.map((r, i) => <div key={i} className="text-[#2B2A27]">{r}</div>)}
               </div>
             ))}
             <div className="flex justify-between items-center pt-1">

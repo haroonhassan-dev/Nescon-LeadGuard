@@ -17,16 +17,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#242E30] bg-[#171E1F]/50">
-      <div className="h-12 w-12 rounded-xl bg-[#0D1112] border border-[#242E30] flex items-center justify-center text-[#8E9B9A] mb-4">
+    <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-xl border border-dashed border-[#E8E1D6] bg-[#FFFFFF]/50">
+      <div className="h-12 w-12 rounded-xl bg-[#FAF8F4] border border-[#E8E1D6] flex items-center justify-center text-[#78716A] mb-4">
         <Icon className="h-6 w-6 stroke-[1.8]" />
       </div>
-      <h3 className="text-base font-bold text-[#F5F7F2]">{title}</h3>
-      <p className="text-xs text-[#8E9B9A] max-w-sm mt-1.5 leading-relaxed">{description}</p>
+      <h3 className="text-base font-bold text-[#2B2A27]">{title}</h3>
+      <p className="text-xs text-[#78716A] max-w-sm mt-1.5 leading-relaxed">{description}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs tracking-wide uppercase transition-colors"
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs tracking-wide uppercase transition-colors"
         >
           {actionLabel}
         </button>

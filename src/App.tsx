@@ -3,6 +3,7 @@ import { NavigationTab } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { BackgroundDecor } from './components/common/BackgroundDecor';
 import { Shell } from './components/layout/Shell';
 import { DashboardPage } from './pages/DashboardPage';
 import { LeadsPage } from './pages/LeadsPage';
@@ -139,18 +140,19 @@ function AppContent() {
   // If not authenticated, render authentic login prompt
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0D1112] flex items-center justify-center p-4">
-        <div className="max-w-md w-full p-8 rounded-xl bg-[#171E1F] border border-[#242E30] space-y-6 shadow-2xl">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <BackgroundDecor />
+        <div className="app-layer page-enter max-w-md w-full p-8 rounded-xl bg-[#FFFFFF] border border-[#E8E1D6] space-y-6 shadow-[0_18px_50px_-28px_rgba(43,42,39,0.45)]">
           <div className="text-center space-y-2">
-            <div className="h-12 w-12 rounded-xl bg-[#0D1112] border border-[#242E30] flex items-center justify-center text-[#B7F45B] mx-auto shadow-sm">
+            <div className="h-12 w-12 rounded-xl bg-[#FAF8F4] border border-[#E8E1D6] flex items-center justify-center text-[#4F7F6D] mx-auto shadow-sm">
               <Shield className="h-6 w-6 stroke-[2.2]" />
             </div>
-            <h2 className="text-xl font-extrabold text-[#F5F7F2]">Nescon-LeadGuard</h2>
-            <p className="text-xs text-[#8E9B9A]">Autonomous Multi-Tenant Lead Escalation Platform</p>
+            <h2 className="text-xl font-extrabold text-[#2B2A27]">Nescon-LeadGuard</h2>
+            <p className="text-xs text-[#78716A]">Autonomous Multi-Tenant Lead Escalation Platform</p>
           </div>
 
           {loginError && (
-            <div className="p-3 rounded-lg bg-[#FF5C5C]/10 border border-[#FF5C5C]/30 flex items-center gap-2 text-xs text-[#FF5C5C]">
+            <div className="p-3 rounded-lg bg-[#B9524C]/10 border border-[#B9524C]/30 flex items-center gap-2 text-xs text-[#B9524C]">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{loginError}</span>
             </div>
@@ -158,7 +160,7 @@ function AppContent() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Account Email
               </label>
               <input
@@ -166,12 +168,12 @@ function AppContent() {
                 required
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
                 Password
               </label>
               <input
@@ -179,14 +181,14 @@ function AppContent() {
                 required
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-xs focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-xs focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] disabled:opacity-50 text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] disabled:opacity-50 text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               <LogIn className="h-4 w-4" />
               {isLoggingIn ? 'Authenticating with Backend...' : 'Authenticate & Enter Console'}
@@ -194,8 +196,8 @@ function AppContent() {
           </form>
 
           {/* Quick Preset Buttons for Seed Demo Accounts */}
-          <div className="border-t border-[#242E30] pt-4 space-y-2">
-            <span className="block text-[10px] font-mono text-[#8E9B9A] uppercase text-center tracking-wider">
+          <div className="border-t border-[#E8E1D6] pt-4 space-y-2">
+            <span className="block text-[10px] font-mono text-[#78716A] uppercase text-center tracking-wider">
               Demo accounts (fills the email; type the demo password):
             </span>
             <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
@@ -204,10 +206,10 @@ function AppContent() {
                 onClick={() => {
                   setLoginEmail('owner@sunco-demo.test');
                 }}
-                className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
+                className="p-2 rounded bg-[#FAF8F4] border border-[#E8E1D6] hover:border-[#4F7F6D] text-left transition-colors"
               >
-                <div className="font-bold text-[#F5F7F2]">Ali Khan</div>
-                <div className="text-[10px] text-[#B7F45B]">[OWNER Level]</div>
+                <div className="font-bold text-[#2B2A27]">Ali Khan</div>
+                <div className="text-[10px] text-[#4F7F6D]">[OWNER Level]</div>
               </button>
 
               <button
@@ -215,10 +217,10 @@ function AppContent() {
                 onClick={() => {
                   setLoginEmail('admin@sunco-demo.test');
                 }}
-                className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
+                className="p-2 rounded bg-[#FAF8F4] border border-[#E8E1D6] hover:border-[#4F7F6D] text-left transition-colors"
               >
-                <div className="font-bold text-[#F5F7F2]">Sara Ahmed</div>
-                <div className="text-[10px] text-[#B7F45B]">[ADMIN Level]</div>
+                <div className="font-bold text-[#2B2A27]">Sara Ahmed</div>
+                <div className="text-[10px] text-[#4F7F6D]">[ADMIN Level]</div>
               </button>
 
               <button
@@ -226,10 +228,10 @@ function AppContent() {
                 onClick={() => {
                   setLoginEmail('manager@sunco-demo.test');
                 }}
-                className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
+                className="p-2 rounded bg-[#FAF8F4] border border-[#E8E1D6] hover:border-[#4F7F6D] text-left transition-colors"
               >
-                <div className="font-bold text-[#F5F7F2]">Usman Raza</div>
-                <div className="text-[10px] text-[#8E9B9A]">[USER (Manager Role)]</div>
+                <div className="font-bold text-[#2B2A27]">Usman Raza</div>
+                <div className="text-[10px] text-[#78716A]">[USER (Manager Role)]</div>
               </button>
 
               <button
@@ -237,10 +239,10 @@ function AppContent() {
                 onClick={() => {
                   setLoginEmail('bilal@sunco-demo.test');
                 }}
-                className="p-2 rounded bg-[#0D1112] border border-[#242E30] hover:border-[#B7F45B] text-left transition-colors"
+                className="p-2 rounded bg-[#FAF8F4] border border-[#E8E1D6] hover:border-[#4F7F6D] text-left transition-colors"
               >
-                <div className="font-bold text-[#F5F7F2]">Bilal Hassan</div>
-                <div className="text-[10px] text-[#8E9B9A]">[USER (Agent Role)]</div>
+                <div className="font-bold text-[#2B2A27]">Bilal Hassan</div>
+                <div className="text-[10px] text-[#78716A]">[USER (Agent Role)]</div>
               </button>
             </div>
           </div>

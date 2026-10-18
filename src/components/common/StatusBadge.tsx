@@ -14,17 +14,17 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   pulse = false,
 }) => {
   const variantStyles: Record<StatusVariant, string> = {
-    lime: 'bg-[#B7F45B]/10 text-[#B7F45B] border-[#B7F45B]/30',
-    muted: 'bg-[#8E9B9A]/10 text-[#8E9B9A] border-[#8E9B9A]/20',
-    warning: 'bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/30',
-    danger: 'bg-[#FF5C5C]/10 text-[#FF5C5C] border-[#FF5C5C]/30',
+    lime: 'bg-[#4F7F6D]/10 text-[#4F7F6D] border-[#4F7F6D]/30',
+    muted: 'bg-[#78716A]/10 text-[#78716A] border-[#78716A]/20',
+    warning: 'bg-[#B97F2E]/10 text-[#B97F2E] border-[#B97F2E]/30',
+    danger: 'bg-[#B9524C]/10 text-[#B9524C] border-[#B9524C]/30',
   };
 
   const dotColors: Record<StatusVariant, string> = {
-    lime: 'bg-[#B7F45B]',
-    muted: 'bg-[#8E9B9A]',
-    warning: 'bg-[#F5A623]',
-    danger: 'bg-[#FF5C5C]',
+    lime: 'bg-[#4F7F6D]',
+    muted: 'bg-[#78716A]',
+    warning: 'bg-[#B97F2E]',
+    danger: 'bg-[#B9524C]',
   };
 
   return (

@@ -3,6 +3,8 @@ import { Header } from '../common/Header';
 import { Sidebar } from '../common/Sidebar';
 import { NavigationTab } from '../../types';
 import { Modal } from '../common/Modal';
+import { BackgroundDecor } from '../common/BackgroundDecor';
+import { errorMessage } from '../../services/sync';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { AlertTriangle, Building2, Clock, Check, LogIn } from 'lucide-react';
@@ -37,6 +39,7 @@ export const Shell: React.FC<ShellProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [slaTimeout, setSlaTimeout] = useState(15);
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
@@ -50,24 +53,22 @@ export const Shell: React.FC<ShellProps> = ({
     const lastName = nameParts.slice(1).join(' ') || 'User';
 
     try {
-      const ws = await signupWorkspace(
-        companyName.trim(),
-        firstName,
-        lastName,
-        adminEmail.trim() || 'admin@example.com'
-      );
+      const ws = await signupWorkspace(companyName.trim(), firstName, lastName, adminEmail.trim(), adminPassword);
       showToast('success', 'Workspace Created', `Company workspace "${ws.name}" initialized successfully.`);
       setIsSignupModalOpen(false);
       setCompanyName('');
       setAdminName('');
       setAdminEmail('');
-    } catch {
-      showToast('error', 'Signup Failed', 'Could not provision workspace.');
+      setAdminPassword('');
+    } catch (err) {
+      showToast('error', 'Signup failed', errorMessage(err));
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0D1112] text-[#F5F7F2] flex flex-col font-sans">
+    <div className="min-h-screen bg-white text-[#2B2A27] flex flex-col font-sans">
+      <BackgroundDecor />
+      <div className="app-layer flex flex-col flex-1 min-h-screen">
       <Header
         isBackendHealthy={isBackendHealthy}
         onRefreshHealth={onRefreshHealth}
@@ -88,8 +89,9 @@ export const Shell: React.FC<ShellProps> = ({
         />
 
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto w-full">
-          {children}
+          <div key={currentTab} className="page-enter">{children}</div>
         </main>
+      </div>
       </div>
 
       {/* Session Expired Modal */}
@@ -100,11 +102,11 @@ export const Shell: React.FC<ShellProps> = ({
         subtitle="Security timeout after inactivity or token invalidation"
       >
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/30 text-xs text-[#F5A623] flex items-start gap-3">
+          <div className="p-4 rounded-xl bg-[#B97F2E]/10 border border-[#B97F2E]/30 text-xs text-[#B97F2E] flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <div>
               <div className="font-bold text-sm">Authentication Renewal Required</div>
-              <p className="mt-1 text-[#8E9B9A]">
+              <p className="mt-1 text-[#78716A]">
                 Your token session has expired. To protect tenant workspace records, please re-authenticate or restore session.
               </p>
             </div>
@@ -112,7 +114,7 @@ export const Shell: React.FC<ShellProps> = ({
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={dismissSessionExpired}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               <LogIn className="h-4 w-4" />
               Restore Session & Continue
@@ -130,7 +132,7 @@ export const Shell: React.FC<ShellProps> = ({
       >
         <form onSubmit={handleSignupSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Company / Organization Name *</label>
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">Company / Organization Name *</label>
             <div className="relative">
               <input
                 type="text"
@@ -138,38 +140,53 @@ export const Shell: React.FC<ShellProps> = ({
                 placeholder="e.g. Acme Commercial Roofing Ltd"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-sm focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-sm focus:outline-none focus:border-[#4F7F6D]"
               />
-              <Building2 className="absolute right-3 top-3 h-4 w-4 text-[#8E9B9A]" />
+              <Building2 className="absolute right-3 top-3 h-4 w-4 text-[#78716A]" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Admin Full Name</label>
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">Admin Full Name</label>
               <input
                 type="text"
                 placeholder="e.g. Jordan Hayes"
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-sm focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-sm focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">Admin Work Email</label>
+              <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">Admin Work Email</label>
               <input
                 type="email"
+                required
                 placeholder="e.g. jordan@acme.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#0D1112] border border-[#242E30] text-[#F5F7F2] text-sm focus:outline-none focus:border-[#B7F45B]"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-sm focus:outline-none focus:border-[#4F7F6D]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-[#8E9B9A] uppercase mb-1">
-              Initial SLA Response Timeout: <span className="text-[#B7F45B] font-bold">{slaTimeout} Minutes</span>
+            <label htmlFor="signup-password" className="block text-xs font-mono text-[#78716A] uppercase mb-1">Password (at least 10 characters)</label>
+            <input
+              id="signup-password"
+              type="password"
+              required
+              minLength={10}
+              autoComplete="new-password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[#2B2A27] text-sm focus:outline-none focus:border-[#4F7F6D]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-mono text-[#78716A] uppercase mb-1">
+              Initial SLA Response Timeout: <span className="text-[#4F7F6D] font-bold">{slaTimeout} Minutes</span>
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -179,26 +196,26 @@ export const Shell: React.FC<ShellProps> = ({
                 step="5"
                 value={slaTimeout}
                 onChange={(e) => setSlaTimeout(parseInt(e.target.value, 10))}
-                className="flex-1 accent-[#B7F45B]"
+                className="flex-1 accent-[#4F7F6D]"
               />
-              <Clock className="h-4 w-4 text-[#8E9B9A]" />
+              <Clock className="h-4 w-4 text-[#78716A]" />
             </div>
-            <p className="text-[11px] text-[#8E9B9A] mt-1">
+            <p className="text-[11px] text-[#78716A] mt-1">
               Leads unacknowledged within this window trigger automatic escalation notifications.
             </p>
           </div>
 
-          <div className="border-t border-[#242E30] pt-4 flex justify-end gap-3">
+          <div className="border-t border-[#E8E1D6] pt-4 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setIsSignupModalOpen(false)}
-              className="px-4 py-2.5 rounded-lg bg-[#0D1112] hover:bg-[#1F282A] text-[#8E9B9A] hover:text-[#F5F7F2] text-xs font-medium border border-[#242E30] transition-colors"
+              className="px-4 py-2.5 rounded-lg bg-[#FAF8F4] hover:bg-[#F3EEE6] text-[#78716A] hover:text-[#2B2A27] text-xs font-medium border border-[#E8E1D6] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               <Check className="h-4 w-4" />
               Provision Workspace

@@ -26,13 +26,13 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0D1112] flex items-center justify-center p-6 text-center">
-          <div className="max-w-md w-full p-8 rounded-xl bg-[#171E1F] border border-[#FF5C5C]/40 space-y-4 shadow-2xl">
-            <div className="h-12 w-12 rounded-xl bg-[#0D1112] border border-[#FF5C5C]/50 flex items-center justify-center text-[#FF5C5C] mx-auto">
+        <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
+          <div className="max-w-md w-full p-8 rounded-xl bg-[#FFFFFF] border border-[#B9524C]/40 space-y-4 shadow-2xl">
+            <div className="h-12 w-12 rounded-xl bg-[#FAF8F4] border border-[#B9524C]/50 flex items-center justify-center text-[#B9524C] mx-auto">
               <AlertTriangle className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-bold text-[#F5F7F2]">Interface Exception Caught</h2>
-            <p className="text-xs text-[#8E9B9A] leading-relaxed">
+            <h2 className="text-lg font-bold text-[#2B2A27]">Interface Exception Caught</h2>
+            <p className="text-xs text-[#78716A] leading-relaxed">
               {this.state.error?.message || 'An unexpected rendering error occurred in this module.'}
             </p>
             <button
@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false });
                 window.location.reload();
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B7F45B] hover:bg-[#A4E045] text-[#0D1112] font-semibold text-xs uppercase tracking-wide transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Reload View
