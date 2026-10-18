@@ -1,0 +1,480 @@
+// Nescon-LeadGuard Prisma Schema
+// PostgreSQL multi-tenant business management and CRM architecture
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------
+// WORKSPACE & TENANCY (Root Scoping Entity)
+// ----------------------------------------------------
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  domain    String?
+  logoUrl   String?
+  settings  Json     @default("{}") // WorkspaceSettings JSON
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  roles              Role[]
+  contacts           Contact[]
+  companies          Company[]
+  pipelines          Pipeline[]
+  opportunities      Opportunity[]
+  leads              Lead[]
+  escalationPolicies EscalationPolicy[]
+  escalationEvents   EscalationEvent[]
+  auditEvents        AuditEvent[]
+  payments           Payment[]
+  messages           Message[]
+  appointments       Appointment[]
+  availabilities     EmployeeAvailability[]
+
+  @@map("workspaces")
+}
+
+// ----------------------------------------------------
+// AUTH & USERS
+// ----------------------------------------------------
+model User {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  email        String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  roleId       String
+  status       String    @default("ACTIVE") // ACTIVE, INVITED, SUSPENDED, DEACTIVATED
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  role         Role                  @relation(fields: [roleId], references: [id])
+  ownedLeads   Lead[]                @relation("LeadCurrentOwner")
+  appointments Appointment[]         @relation("UserAppointments")
+  opportunities Opportunity[]        @relation("UserOpportunities")
+  availability EmployeeAvailability?
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+  @@map("users")
+}
+
+model Role {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  name         String
+  description  String?
+  type         String   @default("AGENT") // OWNER, ADMIN, MANAGER, AGENT, READ_ONLY
+  permissions  String[] // Array of PermissionKey strings
+  isSystemRole Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  users        User[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("roles")
+}
+
+model EmployeeAvailability {
+  id                          String          @id @default(uuid())
+  workspaceId                 String
+  userId                      String          @unique
+  status                      String          @default("AVAILABLE") // AVAILABLE, BUSY, AWAY, OFFLINE
+  statusReason                String?
+  isEligibleForAutoAssignment Boolean         @default(true)
+  maxConcurrentActiveLeads    Int             @default(10)
+  currentActiveLeadCount      Int             @default(0)
+  lastAssignedAt              DateTime?
+  updatedAt                   DateTime        @updatedAt
+
+  workspace                   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user                        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shifts                      ShiftSchedule[]
+
+  @@index([workspaceId, status, isEligibleForAutoAssignment])
+  @@map("employee_availabilities")
+}
+
+model ShiftSchedule {
+  id             String               @id @default(uuid())
+  availabilityId String
+  dayOfWeek      Int                  // 0 = Sunday, 6 = Saturday
+  startTime      String               // "09:00"
+  endTime        String               // "17:00"
+  timezone       String               @default("UTC")
+  isActive       Boolean              @default(true)
+
+  availability   EmployeeAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+
+  @@index([availabilityId])
+  @@map("shift_schedules")
+}
+
+// ----------------------------------------------------
+// CRM: CONTACTS & COMPANIES
+// ----------------------------------------------------
+model Contact {
+  id               String        @id @default(uuid())
+  workspaceId      String
+  companyId        String?
+  firstName        String
+  lastName         String
+  email            String
+  phone            String?
+  mobile           String?
+  title            String?
+  preferredChannel String?       @default("SMS")
+  telegramChatId   String?
+  tags             String[]      @default([])
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company          Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leads            Lead[]
+  opportunities    Opportunity[]
+  messages         Message[]
+  appointments     Appointment[]
+  payments         Payment[]
+
+  @@index([workspaceId, email])
+  @@index([workspaceId, phone])
+  @@map("contacts")
+}
+
+model Company {
+  id          String        @id @default(uuid())
+  workspaceId String
+  name        String
+  domain      String?
+  industry    String?
+  size        String?
+  phone       String?
+  website     String?
+  address     Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts      Contact[]
+  leads         Lead[]
+  opportunities Opportunity[]
+
+  @@index([workspaceId, name])
+  @@map("companies")
+}
+
+// ----------------------------------------------------
+// PIPELINES & OPPORTUNITIES
+// ----------------------------------------------------
+model Pipeline {
+  id          String          @id @default(uuid())
+  workspaceId String
+  name        String
+  description String?
+  isDefault   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages        PipelineStage[]
+  opportunities Opportunity[]
+
+  @@index([workspaceId])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id          String        @id @default(uuid())
+  pipelineId  String
+  name        String
+  order       Int
+  color       String        @default("#B7F45B")
+  slaMinutes  Int?
+  isWonStage  Boolean       @default(false)
+  isLostStage Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@unique([pipelineId, order])
+  @@index([pipelineId])
+  @@map("pipeline_stages")
+}
+
+model Opportunity {
+  id                String         @id @default(uuid())
+  workspaceId       String
+  title             String
+  value             Decimal        @default(0.00) @db.Decimal(12, 2)
+  currency          String         @default("USD")
+  probability       Int            @default(50)
+  pipelineId        String
+  stageId           String
+  contactId         String?
+  companyId         String?
+  assignedUserId    String?
+  status            String         @default("OPEN") // OPEN, WON, LOST, ABANDONED
+  expectedCloseDate DateTime?
+  actualCloseDate   DateTime?
+  lossReason        String?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pipeline     Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage        PipelineStage  @relation(fields: [stageId], references: [id])
+  contact      Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company      Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedUser User?          @relation("UserOpportunities", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  leads        Lead[]
+  payments     Payment[]
+
+  @@index([workspaceId, stageId])
+  @@map("opportunities")
+}
+
+// ----------------------------------------------------
+// LEADS & RECOVERY ENGINE (Single-Owner Invariant)
+// ----------------------------------------------------
+model Lead {
+  id                      String            @id @default(uuid())
+  workspaceId             String
+  title                   String
+  contactName             String
+  contactEmail            String
+  contactPhone            String?
+  companyName             String?
+  source                  String            @default("WEBSITE_FORM")
+  priority                String            @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status                  String            @default("UNASSIGNED") // UNASSIGNED, ASSIGNED, ACKNOWLEDGED, IN_PROGRESS, ESCALATED, CONVERTED, LOST
+  
+  // SINGLE-OWNER CONSTRAINT
+  currentOwnerId          String?
+  assignedAt              DateTime?
+  acknowledgementDeadline DateTime?
+  acknowledgedAt          DateTime?
+
+  // Escalation tracking
+  escalationLevel         Int               @default(0)
+  lastEscalatedAt         DateTime?
+  escalationPolicyId      String?
+
+  contactId               String?
+  companyId               String?
+  opportunityId           String?
+  score                   Int               @default(50)
+  estimatedValue          Decimal?          @db.Decimal(12, 2)
+  currency                String            @default("USD")
+  notes                   String?
+  tags                    String[]          @default([])
+  customFields            Json              @default("{}")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  currentOwner     User?             @relation("LeadCurrentOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
+  contact          Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company          Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunity      Opportunity?      @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  escalationPolicy EscalationPolicy? @relation(fields: [escalationPolicyId], references: [id], onDelete: SetNull)
+  escalationEvents EscalationEvent[]
+  messages         Message[]
+  appointments     Appointment[]
+  payments         Payment[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, currentOwnerId])
+  @@index([workspaceId, acknowledgementDeadline])
+  @@map("leads")
+}
+
+// ----------------------------------------------------
+// ESCALATION ENGINE (Idempotent recovery after restarts)
+// ----------------------------------------------------
+model EscalationPolicy {
+  id          String            @id @default(uuid())
+  workspaceId String
+  name        String
+  description String?
+  isDefault   Boolean           @default(false)
+  rules       Json              // Array of EscalationRule objects
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leads       Lead[]
+  events      EscalationEvent[]
+
+  @@index([workspaceId])
+  @@map("escalation_policies")
+}
+
+model EscalationEvent {
+  id                 String           @id @default(uuid())
+  workspaceId        String
+  leadId             String
+  policyId           String
+  level              Int
+  status             String           @default("SCHEDULED") // SCHEDULED, TRIGGERED, ACKNOWLEDGED, CANCELLED, FAILED
+  
+  // DEDUPLICATION & RESTART SAFETY
+  idempotencyKey     String           @unique
+  scheduledTriggerAt DateTime
+  executedAt         DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  executionResult    Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  workspace          Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead               Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  policy             EscalationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, scheduledTriggerAt])
+  @@map("escalation_events")
+}
+
+// ----------------------------------------------------
+// AUDIT LOGS (Immutable)
+// ----------------------------------------------------
+model AuditEvent {
+  id            String    @id @default(uuid())
+  workspaceId   String
+  actorId       String
+  actorType     String    // USER, SYSTEM, INTEGRATION_WEBHOOK, ESCALATION_ENGINE
+  actorName     String?
+  actorEmail    String?
+  action        String
+  entityType    String
+  entityId      String
+  previousState Json?
+  newState      Json?
+  diff          Json?
+  ipAddress     String?
+  userAgent     String?
+  requestId     String?
+  timestamp     DateTime  @default(now())
+
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, entityType, entityId])
+  @@index([workspaceId, timestamp])
+  @@map("audit_events")
+}
+
+// ----------------------------------------------------
+// INTEGRATIONS: PAYMENTS (Stripe Test Mode)
+// ----------------------------------------------------
+model Payment {
+  id                    String       @id @default(uuid())
+  workspaceId           String
+  leadId                String?
+  opportunityId         String?
+  contactId             String?
+  amount                Int          // In cents (e.g. 5000 = $50.00)
+  currency              String       @default("usd")
+  status                String       // SUCCEEDED, PROCESSING, FAILED, REFUNDED
+  stripePaymentIntentId String       @unique
+  stripeCustomerId      String?
+  stripeMode            String       @default("test") // Strictly 'test'
+  receiptEmail          String?
+  description           String?
+  refundedAmount        Int          @default(0)
+  metadata              Json?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  workspace             Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead                  Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  opportunity           Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  contact               Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, stripePaymentIntentId])
+  @@map("payments")
+}
+
+// ----------------------------------------------------
+// INTEGRATIONS: MESSAGING (Twilio & Telegram)
+// ----------------------------------------------------
+model Message {
+  id                String    @id @default(uuid())
+  workspaceId       String
+  leadId            String?
+  contactId         String?
+  channel           String    // TWILIO_SMS, TELEGRAM, EMAIL
+  direction         String    // INBOUND, OUTBOUND
+  sender            String
+  recipient         String
+  body              String    @db.Text
+  status            String    @default("QUEUED")
+  externalMessageId String?   // Twilio SID or Telegram update/message ID
+  idempotencyKey    String?   @unique
+  rawPayload        Json?
+  errorMessage      String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead              Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact           Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, channel])
+  @@index([workspaceId, externalMessageId])
+  @@map("messages")
+}
+
+// ----------------------------------------------------
+// INTEGRATIONS: APPOINTMENTS (Google Calendar)
+// ----------------------------------------------------
+model Appointment {
+  id                       String    @id @default(uuid())
+  workspaceId              String
+  leadId                   String?
+  contactId                String?
+  assignedUserId           String
+  title                    String
+  description              String?
+  startTime                DateTime
+  endTime                  DateTime
+  timezone                 String    @default("UTC")
+  location                 String?
+  meetingLink              String?
+  status                   String    @default("CONFIRMED") // PENDING, CONFIRMED, RESCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  googleCalendarEventId    String?
+  googleCalendarSyncStatus String    @default("PENDING_SYNC") // SYNCED, PENDING_SYNC, FAILED, DISCONNECTED
+  lastSyncedAt             DateTime?
+  notes                    String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  workspace                Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead                     Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact                  Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedUser             User      @relation("UserAppointments", fields: [assignedUserId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, startTime])
+  @@index([assignedUserId, startTime])
+  @@map("appointments")
+}

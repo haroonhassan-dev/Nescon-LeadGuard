@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #0D1112;
+    --surface-primary: #171E1F;
+    --surface-elevated: #1F282A;
+    --accent-lime: #B7F45B;
+    --text-primary: #F5F7F2;
+    --text-muted: #8E9B9A;
+    --border-color: #242E30;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0D1112;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #242E30;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #364447;
+}
+
+/* Code & Monospace Utility */
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.02em;
+}
+
+/* Minimalist Tech Badges */
+.badge-lime {
+  background-color: rgba(183, 244, 91, 0.1);
+  color: #B7F45B;
+  border: 1px solid rgba(183, 244, 91, 0.25);
+}
+
+.badge-muted {
+  background-color: rgba(142, 155, 154, 0.1);
+  color: #8E9B9A;
+  border: 1px solid rgba(142, 155, 154, 0.2);
+}
