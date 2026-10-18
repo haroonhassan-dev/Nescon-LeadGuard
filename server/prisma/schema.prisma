@@ -93,6 +93,8 @@ model Workspace {
   appointments           Appointment[]
   integrationConnections IntegrationConnection[]
   integrationEvents      IntegrationEvent[]
+  customFields           CustomField[]
+  savedLists             SavedList[]
 
   @@map("workspaces")
 }
@@ -392,18 +394,19 @@ model AuditEvent {
 // CRM
 // ----------------------------------------------------
 model Contact {
-  id          String   @id @default(uuid())
-  workspaceId String
-  companyId   String?
-  firstName   String
-  lastName    String   @default("")
-  email       String?
-  phone       String? // E.164
-  optedOut    Boolean  @default(false) // I1.9
-  tags        String[] @default([])
-  version     Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  workspaceId  String
+  companyId    String?
+  firstName    String
+  lastName     String   @default("")
+  email        String?
+  phone        String? // E.164
+  optedOut     Boolean  @default(false) // I1.9
+  customValues Json     @default("{}") // values for CustomField(entity CONTACT), keyed by field key
+  tags         String[] @default([])
+  version      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   company       Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -447,21 +450,23 @@ model Pipeline {
   workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   stages        PipelineStage[]
   opportunities Opportunity[]
+  customFields  CustomField[]
 
   @@index([workspaceId])
   @@map("pipelines")
 }
 
 model PipelineStage {
-  id          String   @id @default(uuid())
-  workspaceId String
-  pipelineId  String
-  name        String
-  position    Int
-  isWonStage  Boolean  @default(false)
-  isLostStage Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(uuid())
+  workspaceId      String
+  pipelineId       String
+  name             String
+  position         Int
+  isWonStage       Boolean  @default(false)
+  isLostStage      Boolean  @default(false)
+  requiredFieldIds String[] @default([]) // F2.4: fields that must be filled to enter this stage
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   pipeline      Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   opportunities Opportunity[]
@@ -482,6 +487,8 @@ model Opportunity {
   companyId      String?
   leadId         String?
   assignedUserId String?
+  tags           String[] @default([])
+  customValues   Json     @default("{}") // values for this pipeline's CustomFields, keyed by field key
   version        Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -621,4 +628,49 @@ model IntegrationEvent {
   @@unique([provider, externalId])
   @@index([workspaceId, provider, createdAt])
   @@map("integration_events")
+}
+
+// ----------------------------------------------------
+// CRM CUSTOMIZATION (F2.2–F2.6)
+// ----------------------------------------------------
+
+// A field an Admin adds from the interface. OPPORTUNITY fields belong to one pipeline (F2.3);
+// CONTACT fields are shared by every pipeline. Deleting archives it, so stored values survive.
+model CustomField {
+  id          String    @id @default(uuid())
+  workspaceId String
+  entity      String // OPPORTUNITY | CONTACT
+  pipelineId  String?
+  key         String // stable machine name, e.g. roof_type
+  label       String
+  type        String // TEXT | NUMBER | DATE | DROPDOWN | CHECKBOX
+  options     String[]  @default([])
+  position    Int       @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pipeline  Pipeline? @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, entity, pipelineId])
+  @@map("custom_fields")
+}
+
+// A saved filter (F2.6). Stores the criteria, not the results, so it updates by itself.
+model SavedList {
+  id          String   @id @default(uuid())
+  workspaceId String
+  ownerId     String
+  name        String
+  entity      String   @default("OPPORTUNITY")
+  filters     Json
+  shared      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, ownerId])
+  @@map("saved_lists")
 }

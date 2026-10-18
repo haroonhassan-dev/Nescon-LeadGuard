@@ -68,6 +68,8 @@ export function presentOpportunity(o: OpportunityWithRelations, canSeeValue: boo
         }
       : null,
     leadId: o.leadId,
+    tags: o.tags,
+    customValues: o.customValues,
     assignedUser: o.assignedUser
       ? { id: o.assignedUser.id, name: `${o.assignedUser.firstName} ${o.assignedUser.lastName}`.trim() }
       : null,
