@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Workflow, MessageSquare, CreditCard, Calendar, Send, RefreshCw, ExternalLink, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Workflow, MessageSquare, CreditCard, Calendar, Send, RefreshCw, ExternalLink, AlertTriangle, CheckCircle2, FileText, Copy } from 'lucide-react';
 import { User } from '@shared/user';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -23,7 +23,7 @@ interface IntegrationsPageProps {
   isBackendHealthy: boolean | null;
 }
 
-type Tab = 'overview' | 'whatsapp' | 'stripe' | 'gcal' | 'telegram';
+type Tab = 'overview' | 'webform' | 'whatsapp' | 'stripe' | 'gcal' | 'telegram';
 const card = 'bg-[#FFFFFF] border border-[#E8E1D6] rounded-xl';
 const btn = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#4F7F6D] hover:bg-[#3F6A5A] text-white font-semibold text-xs uppercase tracking-wide disabled:opacity-50';
 const ghost = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FAF8F4] text-[#78716A] hover:text-[#2B2A27] text-xs border border-[#E8E1D6] disabled:opacity-50';
@@ -59,6 +59,7 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ users, isBac
   const [team, setTeam] = useState<BackendTeamMember[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formKey, setFormKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const next: Record<string, string> = {};
@@ -78,6 +79,7 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ users, isBac
       hasPermission('message:read') ? attempt('conversations', liveApi.conversations, (r) => setConversations(r.items)) : Promise.resolve(),
       attempt('team', backendService.getTeam, (r) => setTeam(r.items)),
       canManage ? attempt('alerts', liveApi.alerts, (r) => setAlerts(r.items)) : Promise.resolve(),
+      attempt('webform', liveApi.settings, (r) => setFormKey(r.publicFormKey ?? null)),
     ]);
     setErrors(next);
   }, [canManage, hasPermission]);
@@ -208,6 +210,7 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ users, isBac
 
       <div className="flex border-b border-[#E8E1D6] gap-4 text-xs font-mono overflow-x-auto">
         {tabBtn('overview', <Workflow className="h-3.5 w-3.5" />, 'Status')}
+        {tabBtn('webform', <FileText className="h-3.5 w-3.5" />, 'Web form')}
         {tabBtn('whatsapp', <MessageSquare className="h-3.5 w-3.5" />, `WhatsApp (${conversations.length})`)}
         {tabBtn('stripe', <CreditCard className="h-3.5 w-3.5" />, `Stripe (${payments.length})`)}
         {tabBtn('gcal', <Calendar className="h-3.5 w-3.5" />, `Google Calendar (${appointments.length})`)}
@@ -246,6 +249,40 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ users, isBac
           })}
         </div>
       )}
+
+      {/* ---------------- WEB FORM ---------------- */}
+      {tab === 'webform' && (() => {
+        const base = `${window.location.origin}${window.location.pathname}`;
+        const link = formKey ? `${base}?form=${formKey}` : '';
+        const embed = formKey ? `<iframe src="${base}?form=${formKey}&embed=1" width="100%" height="640" style="border:0" title="Contact us"></iframe>` : '';
+        const copy = (text: string, what: string) => void navigator.clipboard.writeText(text).then(() => showToast('success', 'Copied', `${what} copied to the clipboard`));
+        return (
+          <div className="space-y-4 max-w-3xl">
+            <div className={`${card} p-5 space-y-3`}>
+              <h3 className="text-base font-bold text-[#2B2A27]">Customer enquiry form</h3>
+              <p className="text-xs text-[#78716A]">Share this link (website, social media, QR code on a flyer). Every submission becomes a lead that is assigned immediately and starts its countdown.</p>
+              {!formKey ? <div className="text-xs text-[#78716A]">Loading…</div> : (
+                <>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6]">
+                    <span className="text-xs text-[#2B2A27] truncate flex-1">{link}</span>
+                    <button aria-label="Copy form link" className={ghost} onClick={() => copy(link, 'Form link')}><Copy className="h-3.5 w-3.5" /></button>
+                    <a className={btn} href={link} target="_blank" rel="noreferrer">Open form <ExternalLink className="h-3.5 w-3.5" /></a>
+                  </div>
+                  <div className="text-[11px] text-[#78716A]">Anyone with the link can only submit an enquiry; it gives no access to your data. Spam is filtered and limited to 10 submissions per minute per visitor.</div>
+                </>
+              )}
+            </div>
+            {formKey && (
+              <div className={`${card} p-5 space-y-3`}>
+                <h3 className="text-base font-bold text-[#2B2A27]">Embed on your website</h3>
+                <p className="text-xs text-[#78716A]">Paste this into any page of the company website to show the form there.</p>
+                <pre className="p-3 rounded-lg bg-[#FAF8F4] border border-[#E8E1D6] text-[11px] text-[#2B2A27] whitespace-pre-wrap break-all">{embed}</pre>
+                <button className={ghost} onClick={() => copy(embed, 'Embed code')}><Copy className="h-3.5 w-3.5" /> Copy embed code</button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ---------------- WHATSAPP ---------------- */}
       {tab === 'whatsapp' && (

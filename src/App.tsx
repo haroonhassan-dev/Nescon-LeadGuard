@@ -10,6 +10,7 @@ import { LeadsPage } from './pages/LeadsPage';
 import { CrmPage } from './pages/CrmPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { TeamPage } from './pages/TeamPage';
+import { PublicFormPage } from './pages/PublicFormPage';
 import { appStore } from './services/store';
 import { backendService } from './services/backendService';
 import { fetchHealthStatus } from './services/healthService';
@@ -290,6 +291,12 @@ function AppContent() {
 }
 
 export function App() {
+  // Public enquiry form: /?form=<key> (no login). Embeddable with &embed=1.
+  const params = new URLSearchParams(window.location.search);
+  const formKey = params.get('form');
+  if (formKey) {
+    return <PublicFormPage formKey={formKey} embedded={params.get('embed') === '1'} />;
+  }
   return (
     <ErrorBoundary>
       <ToastProvider>

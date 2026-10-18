@@ -214,6 +214,8 @@ export interface AssignmentSettings {
   acknowledgedLeadPolicy: 'KEEP_WITH_OWNER' | 'REASSIGN';
   acknowledgedLeadPolicyDescription: string;
   version: number;
+  publicFormKey?: string;
+  workspaceName?: string;
 }
 export interface Alert {
   id: string;
