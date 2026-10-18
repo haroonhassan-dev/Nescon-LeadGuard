@@ -1,33 +1,12 @@
-import { Router, Request, Response } from 'express';
-import { ApiResponse } from '../../../../shared/contracts/api';
+import { Router } from 'express';
+import { AppError } from '../../middleware/errorHandler';
 
+/**
+ * CRM (F2) is P1/P2 and not built yet. These routes answer 501 instead of returning empty
+ * mock lists, so nobody mistakes the scaffold for working functionality.
+ */
 export const crmRouter = Router();
 
-// Contacts & Companies
-crmRouter.get('/contacts', async (req: Request, res: Response) => {
-  const response: ApiResponse<{ contacts: [] }> = {
-    success: true,
-    data: { contacts: [] },
-    meta: { timestamp: new Date().toISOString() },
-  };
-  res.status(200).json(response);
-});
-
-crmRouter.get('/companies', async (req: Request, res: Response) => {
-  const response: ApiResponse<{ companies: [] }> = {
-    success: true,
-    data: { companies: [] },
-    meta: { timestamp: new Date().toISOString() },
-  };
-  res.status(200).json(response);
-});
-
-// Pipelines & Opportunities
-crmRouter.get('/pipelines', async (req: Request, res: Response) => {
-  const response: ApiResponse<{ pipelines: [] }> = {
-    success: true,
-    data: { pipelines: [] },
-    meta: { timestamp: new Date().toISOString() },
-  };
-  res.status(200).json(response);
+crmRouter.all('*', (_req, _res, next) => {
+  next(new AppError('CRM endpoints are not implemented yet (planned for P1)', 501, 'NOT_IMPLEMENTED'));
 });
