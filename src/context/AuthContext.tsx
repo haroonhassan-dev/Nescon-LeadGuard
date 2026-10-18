@@ -36,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_PERSONA_KEY = 'nescon_leadguard_auth_persona';
 const AUTH_MEMBERSHIPS_KEY = 'nescon_leadguard_memberships';
+const AUTH_USER_KEY = 'nescon_leadguard_auth_user';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [personaKey, setPersonaKey] = useState<string>(() => {
@@ -53,7 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const [currentUser, setCurrentUser] = useState<ExtendedUserProfile>(() => getInitialUser(personaKey));
+  const [currentUser, setCurrentUser] = useState<ExtendedUserProfile>(() => {
+    try {
+      const stored = localStorage.getItem(AUTH_USER_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // fallback
+    }
+    return getInitialUser(personaKey);
+  });
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace>(appStore.getActiveWorkspace());
   const [workspaces, setWorkspaces] = useState<Workspace[]>(appStore.getWorkspaces());
   const [memberships, setMemberships] = useState<WorkspaceMembership[]>(() => {
@@ -66,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [token, setTokenState] = useState<string | null>(() => {
-    return localStorage.getItem('nescon_leadguard_auth_token') || 'bearer_demo_session_token';
+    return localStorage.getItem('nescon_leadguard_auth_token') || null;
   });
   const [isSessionExpired, setIsSessionExpired] = useState<boolean>(false);
 
@@ -100,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setCurrentUser(extUser);
       localStorage.setItem(AUTH_PERSONA_KEY, key);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(extUser));
       setIsSessionExpired(false);
       updateToken(`bearer_session_${key}`);
     }
@@ -119,135 +129,113 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: string,
       password = 'Password123!'
     ): Promise<Workspace> => {
-      try {
-        // Attempt real backend signup
-        const res = await backendService.signup({
-          workspaceName: companyName,
-          firstName,
-          lastName,
-          email,
-          password,
-        });
+      // Real backend signup - no fake fallback allowed per Priority 1
+      const res = await backendService.signup({
+        workspaceName: companyName,
+        firstName,
+        lastName,
+        email,
+        password,
+      });
 
-        updateToken(res.token);
-        setMemberships(res.memberships);
-        localStorage.setItem(AUTH_MEMBERSHIPS_KEY, JSON.stringify(res.memberships));
+      updateToken(res.token);
+      setMemberships(res.memberships);
+      localStorage.setItem(AUTH_MEMBERSHIPS_KEY, JSON.stringify(res.memberships));
 
-        const activeMembership = res.memberships[0];
-        if (activeMembership) {
-          setActiveWorkspaceId(activeMembership.workspaceId);
-        }
+      const activeMembership = res.memberships[0];
+      if (activeMembership) {
+        setActiveWorkspaceId(activeMembership.workspaceId);
+      }
 
-        const newWs: Workspace = {
-          id: res.workspace.id,
-          name: res.workspace.name,
-          slug: res.workspace.slug,
-          domain: `${res.workspace.slug}.nescon.io`,
-          settings: {
-            defaultTimezone: 'UTC',
-            defaultCurrency: 'USD',
-            defaultAcknowledgementTimeoutMinutes: 15,
-            maxEscalationLevels: 3,
-            autoAssignmentEnabled: true,
-            webhookRetryLimit: 5,
-            businessHours: [],
-          },
-          isActive: true,
+      const newWs: Workspace = {
+        id: res.workspace.id,
+        name: res.workspace.name,
+        slug: res.workspace.slug,
+        domain: `${res.workspace.slug}.nescon.io`,
+        settings: {
+          defaultTimezone: 'UTC',
+          defaultCurrency: 'USD',
+          defaultAcknowledgementTimeoutMinutes: 15,
+          maxEscalationLevels: 3,
+          autoAssignmentEnabled: true,
+          webhookRetryLimit: 5,
+          businessHours: [],
+        },
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const extUser: ExtendedUserProfile = {
+        id: res.user.id,
+        workspaceId: res.workspace.id,
+        email: res.user.email,
+        firstName: res.user.firstName,
+        lastName: res.user.lastName,
+        fullName: `${res.user.firstName} ${res.user.lastName}`.trim(),
+        baseLevel: 'OWNER',
+        permissions: activeMembership ? activeMembership.permissions : [],
+        role: {
+          id: 'role_owner',
+          workspaceId: res.workspace.id,
+          name: 'Workspace Owner',
+          type: 'OWNER',
+          description: 'Tenant Owner',
+          permissions: activeMembership ? (activeMembership.permissions as PermissionKey[]) : [],
+          isSystemRole: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        };
+        },
+      };
 
-        const extUser: ExtendedUserProfile = {
-          id: res.user.id,
-          workspaceId: res.workspace.id,
-          email: res.user.email,
-          firstName: res.user.firstName,
-          lastName: res.user.lastName,
-          fullName: `${res.user.firstName} ${res.user.lastName}`.trim(),
-          baseLevel: 'OWNER',
-          permissions: activeMembership ? activeMembership.permissions : [],
-          role: {
-            id: 'role_owner',
-            workspaceId: res.workspace.id,
-            name: 'Workspace Owner',
-            type: 'OWNER',
-            description: 'Tenant Owner',
-            permissions: activeMembership ? (activeMembership.permissions as PermissionKey[]) : [],
-            isSystemRole: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        };
-
-        setCurrentUser(extUser);
-        setActiveWorkspace(newWs);
-        return newWs;
-      } catch (err) {
-        console.warn('Real backend signup unavailable or failed, falling back to local workspace creation:', err);
-        const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        const fallbackWs = appStore.createWorkspace(companyName, slug, 15);
-        setActiveWorkspace(fallbackWs);
-        setWorkspaces(appStore.getWorkspaces());
-        return fallbackWs;
-      }
+      setCurrentUser(extUser);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(extUser));
+      setActiveWorkspace(newWs);
+      return newWs;
     },
     [updateToken]
   );
 
   const login = useCallback(
     async (email: string, password = 'Password123!'): Promise<boolean> => {
-      try {
-        // Attempt real backend login
-        const res: LoginResponseData = await backendService.login(email, password);
-        updateToken(res.token);
-        setMemberships(res.memberships);
-        localStorage.setItem(AUTH_MEMBERSHIPS_KEY, JSON.stringify(res.memberships));
+      // Real backend login - no fake fallback allowed per Priority 1
+      const res: LoginResponseData = await backendService.login(email, password);
+      updateToken(res.token);
+      setMemberships(res.memberships);
+      localStorage.setItem(AUTH_MEMBERSHIPS_KEY, JSON.stringify(res.memberships));
 
-        const activeMembership = res.memberships[0];
-        if (activeMembership) {
-          setActiveWorkspaceId(activeMembership.workspaceId);
-          const extUser: ExtendedUserProfile = {
-            id: res.user.id,
+      const activeMembership = res.memberships[0];
+      if (activeMembership) {
+        setActiveWorkspaceId(activeMembership.workspaceId);
+        const extUser: ExtendedUserProfile = {
+          id: res.user.id,
+          workspaceId: activeMembership.workspaceId,
+          email: res.user.email,
+          firstName: res.user.firstName,
+          lastName: res.user.lastName,
+          fullName: `${res.user.firstName} ${res.user.lastName}`.trim(),
+          baseLevel: activeMembership.baseLevel,
+          permissions: activeMembership.permissions,
+          role: {
+            id: activeMembership.role?.id || `role_${activeMembership.baseLevel.toLowerCase()}`,
             workspaceId: activeMembership.workspaceId,
-            email: res.user.email,
-            firstName: res.user.firstName,
-            lastName: res.user.lastName,
-            fullName: `${res.user.firstName} ${res.user.lastName}`.trim(),
-            baseLevel: activeMembership.baseLevel,
-            permissions: activeMembership.permissions,
-            role: {
-              id: activeMembership.role?.id || `role_${activeMembership.baseLevel.toLowerCase()}`,
-              workspaceId: activeMembership.workspaceId,
-              name: activeMembership.role?.name || activeMembership.baseLevel,
-              type: activeMembership.baseLevel === 'OWNER' ? 'OWNER' : activeMembership.baseLevel === 'ADMIN' ? 'ADMIN' : 'AGENT',
-              description: activeMembership.role?.name || activeMembership.baseLevel,
-              permissions: activeMembership.permissions as PermissionKey[],
-              isSystemRole: true,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          };
-          setCurrentUser(extUser);
-        }
-
-        setIsSessionExpired(false);
-        return true;
-      } catch (err) {
-        console.warn('Real backend login rejected or offline, evaluating demo persona match:', err);
-
-        // Fallback to local persona match for seamless testing
-        let key = 'admin';
-        if (email.includes('owner') || email.includes('ali')) key = 'owner';
-        else if (email.includes('manager') || email.includes('usman')) key = 'manager';
-        else if (email.includes('agent') || email.includes('bilal') || email.includes('elena')) key = 'agent';
-        else if (email.includes('readonly') || email.includes('audit')) key = 'readonly';
-
-        switchPersona(key as 'owner' | 'admin' | 'manager' | 'agent' | 'readonly');
-        setIsSessionExpired(false);
-        return true;
+            name: activeMembership.role?.name || activeMembership.baseLevel,
+            type: activeMembership.baseLevel === 'OWNER' ? 'OWNER' : activeMembership.baseLevel === 'ADMIN' ? 'ADMIN' : 'AGENT',
+            description: activeMembership.role?.name || activeMembership.baseLevel,
+            permissions: activeMembership.permissions as PermissionKey[],
+            isSystemRole: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        setCurrentUser(extUser);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(extUser));
       }
+
+      setIsSessionExpired(false);
+      return true;
     },
-    [updateToken, switchPersona]
+    [updateToken]
   );
 
   const logout = useCallback(async () => {
@@ -260,6 +248,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveWorkspaceId(null);
     setMemberships([]);
     localStorage.removeItem(AUTH_MEMBERSHIPS_KEY);
+    localStorage.removeItem(AUTH_PERSONA_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    setIsSessionExpired(false);
   }, [updateToken]);
 
   const hasPermission = useCallback(
